@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #f4f4f4; }
+        .container { max-width: 600px; margin: 20px auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.1); border: 1px solid #eee; }
+        .header { background: #e0f465; color: #000; padding: 30px; text-align: center; }
+        .header img { max-width: 150px; margin-bottom: 15px; }
+        .content { padding: 40px; }
+        .footer { background: #f4f4f4; padding: 20px; text-align: center; font-size: 12px; color: #888; }
+        h1 { margin: 0; font-size: 24px; letter-spacing: 1px; }
+        .detail-row { margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 8px; }
+        .label { font-weight: bold; color: #555; width: 100px; display: inline-block; }
+        .message-content { background: #f9f9f9; padding: 20px; border-radius: 8px; border: 1px solid #ddd; margin-top: 10px; white-space: pre-line; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <img src="cid:logo" alt="Cricza Logo">
+            <h1>New Contact Inquiry</h1>
+        </div>
+        <div class="content">
+            <div class="detail-row">
+                <span class="label">Name:</span> <strong>{{ user_name }}</strong>
+            </div>
+            <div class="detail-row">
+                <span class="label">Email:</span> <strong>{{ user_email }}</strong>
+            </div>
+            <div class="detail-row">
+                <span class="label">Subject:</span> <strong>{{ inquiry_subject }}</strong>
+            </div>
+            <div style="margin-top: 20px;">
+                <strong>Message:</strong>
+                <div class="message-content">
+                    {{ message }}
+                </div>
+            </div>
+        </div>
+        <div class="footer">
+            <p>This is an automated inquiry notification from the Cricza Contact Form.</p>
+        </div>
+    </div>
+</body>
+</html>

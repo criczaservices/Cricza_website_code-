@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #f4f4f4; }
+        .container { max-width: 600px; margin: 20px auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.1); border: 1px solid #eee; }
+        .header { background: #000; color: #fff; padding: 30px; text-align: center; }
+        .header img { max-width: 150px; margin-bottom: 15px; }
+        .content { padding: 40px; }
+        .booking-details { background: #f9f9f9; padding: 25px; border-radius: 8px; border-left: 5px solid #e0f465; margin: 25px 0; }
+        .detail-row { display: flex; margin-bottom: 12px; border-bottom: 1px solid #eee; padding-bottom: 8px; }
+        .detail-label { font-weight: bold; width: 140px; color: #555; font-size: 0.9rem; }
+        .detail-value { flex: 1; font-weight: 600; color: #000; }
+        .footer { background: #f4f4f4; padding: 20px; text-align: center; font-size: 12px; color: #888; }
+        .btn { display: inline-block; padding: 12px 30px; background-color: #e0f465; color: #000; text-decoration: none; font-weight: bold; border-radius: 6px; margin-top: 20px; }
+        h1 { margin: 0; font-size: 24px; letter-spacing: 1px; }
+        .section-title { font-size: 1.1rem; color: #000; font-weight: bold; margin-bottom: 1rem; border-bottom: 2px solid #e0f465; display: inline-block; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <img src="cid:logo" alt="Cricza Logo">
+            <h1>New Booking!</h1>
+        </div>
+        <div class="content">
+            <p>Hello <strong>Owner</strong>,</p>
+            <p>Great news! A new booking has been confirmed for your turf. Here are the details:</p>
+            
+            <div class="section-title">Customer Information</div>
+            <div class="booking-details" style="margin-top: 0;">
+                <div class="detail-row">
+                    <span class="detail-label">Name:</span>
+                    <span class="detail-value">{{ customer_name }}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Email:</span>
+                    <span class="detail-value">{{ customer_email }}</span>
+                </div>
+                <div class="detail-row" style="border-bottom: none;">
+                    <span class="detail-label">Phone:</span>
+                    <span class="detail-value">{{ customer_phone }}</span>
+                </div>
+            </div>
+
+            <div class="section-title">Booking Details</div>
+            <div class="booking-details" style="margin-top: 0;">
+                <div class="detail-row">
+                    <span class="detail-label">Order ID:</span>
+                    <span class="detail-value">#{{ booking_id }}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Turf Name:</span>
+                    <span class="detail-value">{{ turf_name }}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Playing Date:</span>
+                    <span class="detail-value">{{ date }}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Time Slot:</span>
+                    <span class="detail-value">{{ time_slot }}</span>
+                </div>
+                <div class="detail-row" style="border-bottom: none;">
+                    <span class="detail-label">Amount:</span>
+                    <span class="detail-value">₹{{ amount }}</span>
+                </div>
+            </div>
+
+            <p style="text-align: center;">
+                <a href="{{ dashboard_url }}" class="btn">Manage in Dashboard</a>
+            </p>
+        </div>
+        <div class="footer">
+            <p>© 2026 Cricza India. All rights reserved.</p>
+            <p>Need help? Contact us at criczaservices@gmail.com</p>
+            <p>This is an automated notification. Please do not reply to this email.</p>
+        </div>
+    </div>
+</body>
+</html>

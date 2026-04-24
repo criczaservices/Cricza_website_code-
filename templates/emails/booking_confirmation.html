@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #f4f4f4; }
+        .container { max-width: 600px; margin: 20px auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.1); border: 1px solid #eee; }
+        .header { background: #000; color: #fff; padding: 30px; text-align: center; }
+        .header img { max-width: 150px; margin-bottom: 15px; }
+        .content { padding: 40px; }
+        .booking-details { background: #f9f9f9; padding: 25px; border-radius: 8px; border-left: 5px solid #e0f465; margin: 25px 0; }
+        .detail-row { display: flex; margin-bottom: 12px; border-bottom: 1px solid #eee; padding-bottom: 8px; }
+        .detail-label { font-weight: bold; width: 140px; color: #555; font-size: 0.9rem; }
+        .detail-value { flex: 1; font-weight: 600; color: #000; }
+        .footer { background: #f4f4f4; padding: 20px; text-align: center; font-size: 12px; color: #888; }
+        .btn { display: inline-block; padding: 12px 30px; background-color: #e0f465; color: #000; text-decoration: none; font-weight: bold; border-radius: 6px; margin-top: 20px; }
+        h1 { margin: 0; font-size: 24px; letter-spacing: 1px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <img src="cid:logo" alt="Cricza Logo">
+            <h1>Booking Confirmed!</h1>
+        </div>
+        <div class="content">
+            <p>Hello <strong>{{ user_name }}</strong>,</p>
+            <p>Your cricket turf booking has been successfully confirmed. Get ready for the game!</p>
+            
+            <div class="booking-details">
+                <div class="detail-row">
+                    <span class="detail-label">Order ID:</span>
+                    <span class="detail-value">#{{ booking_id }}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Turf Name:</span>
+                    <span class="detail-value">{{ turf_name }}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Booked On:</span>
+                    <span class="detail-value">{{ booking_time }}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Playing Date:</span>
+                    <span class="detail-value">{{ date }}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Time Slot:</span>
+                    <span class="detail-value">{{ time_slot }}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Amount Paid:</span>
+                    <span class="detail-value">₹{{ amount }}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Location:</span>
+                    <span class="detail-value">{{ location }}</span>
+                </div>
+                <div class="detail-row" style="border-bottom: none;">
+                    <span class="detail-label">Owner Contact:</span>
+                    <span class="detail-value">{{ owner_phone }}</span>
+                </div>
+            </div>
+
+            <p style="text-align: center;">
+                <a href="{{ dashboard_url }}" class="btn">View in Dashboard</a>
+            </p>
+            
+            <p style="margin-top: 30px; font-size: 0.9rem;">Thank you for choosing Cricza — your ultimate cricket destination.</p>
+        </div>
+        <div class="footer">
+            <p>© 2026 Cricza India. All rights reserved.</p>
+            <p>If you have any questions, contact our support team at criczaservices@gmail.com</p>
+        </div>
+    </div>
+</body>
+</html>
