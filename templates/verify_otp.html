@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+
+{% block title %}Cricza - Verify OTP{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="auth-card">
+        <h2>Enter OTP Code</h2>
+        <p class="auth-subtitle">We've sent a 6-digit code to your email. Please enter it below to verify your identity.</p>
+        
+        {% with messages = get_flashed_messages() %}
+          {% if messages %}
+            <div class="flash-messages" style="color: #ff4d4d; margin-bottom: 1rem; text-align: center; font-weight: bold;">
+              {% for message in messages %}
+                <p>{{ message }}</p>
+              {% endfor %}
+            </div>
+          {% endif %}
+        {% endwith %}
+        
+        <form class="auth-form" action="/verify-otp" method="POST">
+            <div class="form-group">
+                <label for="otp">6-Digit OTP</label>
+                <input type="text" id="otp" name="otp" required maxlength="6" pattern="\d{6}" placeholder="000000" style="text-align: center; font-size: 1.5rem; letter-spacing: 0.5rem; font-weight: bold;">
+            </div>
+            <button class="btn btn-primary btn-full" type="submit">Verify OTP</button>
+        </form>
+
+        <p class="auth-redirect">Didn't receive the code? <a href="/forgot-password">Resend OTP</a></p>
+    </div>
+</div>
+{% endblock %}

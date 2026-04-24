@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+
+{% block title %}Cricza - Be Our Partner{% endblock %}
+
+{% block content %}
+<section class="hero" style="padding: 4rem 2rem; ">
+    <div class="hero-content">
+        <h1 class="hero-title">Partner with Cricza</h1>
+        <p class="hero-subtitle">List your turf, manage bookings, and grow your revenue with our premium subscription
+            plans.</p>
+    </div>
+</section>
+
+<section class="container">
+    <div class="pricing-grid" style="grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));">
+        <!-- Free Trial Plan -->
+        <div class="pricing-card">
+            <h3 class="pricing-title">1 Month Free Trial</h3>
+            <div class="pricing-price">₹0</div>
+            <div class="pricing-duration">for first 30 days</div>
+            <ul class="pricing-features">
+                <li>List Unlimited Turfs</li>
+                <li>Full Booking Management</li>
+                <li>Access to Analytics</li>
+                <li>Standard Support</li>
+                <li>Risk-free exploration</li>
+            </ul>
+            <a href="/register/partner?plan=Free%20Trial&price=0" class="btn btn-outline btn-full">Start Free Trial</a>
+        </div>
+
+        <!-- Paid Plan -->
+        <div class="pricing-card popular">
+            <div class="popular-badge">Recommended</div>
+            <h3 class="pricing-title">Standard Partner</h3>
+            <div class="pricing-price">₹500</div>
+            <div class="pricing-duration">per month</div>
+            <ul class="pricing-features">
+                <li>Everything in Free Trial</li>
+                <li>Priority Support</li>
+                <li>Premium Badge on Turfs</li>
+                <li>Advanced Marketing Tools</li>
+                <li>Full Payout Flexibility</li>
+            </ul>
+            <a href="/register/partner?plan=Paid%20Plan&price=500" class="btn btn-primary btn-full">Subscribe Now</a>
+        </div>
+    </div>
+</section>
+{% endblock %}

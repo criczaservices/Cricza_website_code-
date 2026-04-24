@@ -1,0 +1,163 @@
+{% extends "base.html" %}
+
+{% block title %}Slow Down - Cricza{% endblock %}
+
+{% block content %}
+<div class="ratelimit-container">
+    <div class="ratelimit-card">
+        <div class="ratelimit-icon">
+            <img src="{{ url_for('static', filename='image/ratelimit.png') }}" alt="Slow Down" class="ratelimit-img">
+        </div>
+        <h1 class="ratelimit-title">Slow Down, Champ!</h1>
+        <p class="ratelimit-message">
+            You're moving a bit too fast. We've applied a temporary speed limit to keep things running smoothly for everyone.
+        </p>
+        
+        <div class="timer-container">
+            <p>Please wait a few moments before trying again.</p>
+            {% if retry_after %}
+            <div class="countdown-wrapper">
+                <span id="countdown">{{ retry_after }}</span>
+                <span class="seconds-label">seconds</span>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="ratelimit-actions">
+            <a href="/" class="btn btn-primary">Back to Home</a>
+            <button onclick="location.reload()" class="btn btn-outline">Try Again</button>
+        </div>
+    </div>
+</div>
+
+<style>
+    .ratelimit-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 80vh;
+        padding: 2rem;
+        background: radial-gradient(circle at center, #1a1a1a 0%, #000000 100%);
+        color: #ffffff;
+    }
+
+    .ratelimit-card {
+        background: rgba(255, 255, 255, 0.05);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 24px;
+        padding: 3rem;
+        max-width: 600px;
+        width: 100%;
+        text-align: center;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        animation: fadeIn 0.6s ease-out;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .ratelimit-img {
+        width: 180px;
+        height: auto;
+        margin-bottom: 2rem;
+        filter: drop-shadow(0 0 20px rgba(224, 244, 101, 0.3));
+    }
+
+    .ratelimit-title {
+        font-size: 3rem;
+        font-weight: 800;
+        margin-bottom: 1rem;
+        color: var(--accent-color);
+        letter-spacing: -1px;
+    }
+
+    .ratelimit-message {
+        font-size: 1.1rem;
+        color: #cccccc;
+        margin-bottom: 2.5rem;
+        line-height: 1.6;
+    }
+
+    .timer-container {
+        margin-bottom: 2.5rem;
+        padding: 1.5rem;
+        background: rgba(224, 244, 101, 0.05);
+        border-radius: 16px;
+        border: 1px dashed rgba(224, 244, 101, 0.2);
+    }
+
+    .countdown-wrapper {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: var(--accent-color);
+        margin-top: 0.5rem;
+        display: flex;
+        align-items: baseline;
+        justify-content: center;
+        gap: 0.5rem;
+    }
+
+    .seconds-label {
+        font-size: 1rem;
+        font-weight: 500;
+        color: #888;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+
+    .ratelimit-actions {
+        display: flex;
+        gap: 1rem;
+        justify-content: center;
+    }
+
+    .ratelimit-actions .btn {
+        min-width: 160px;
+    }
+
+    .btn-outline {
+        border-color: rgba(255, 255, 255, 0.3);
+        color: #ffffff;
+    }
+
+    .btn-outline:hover {
+        background: rgba(255, 255, 255, 0.1);
+        border-color: #ffffff;
+    }
+
+    @media (max-width: 600px) {
+        .ratelimit-title {
+            font-size: 2.2rem;
+        }
+        .ratelimit-card {
+            padding: 2rem;
+        }
+        .ratelimit-actions {
+            flex-direction: column;
+        }
+        .ratelimit-actions .btn {
+            width: 100%;
+        }
+    }
+</style>
+
+<script>
+    {% if retry_after %}
+    let timeLeft = {{ retry_after }};
+    const countdownEl = document.getElementById('countdown');
+    
+    const timer = setInterval(() => {
+        timeLeft--;
+        if (timeLeft <= 0) {
+            clearInterval(timer);
+            countdownEl.parentElement.innerHTML = "You're ready to go!";
+        } else {
+            countdownEl.innerText = timeLeft;
+        }
+    }, 1000);
+    {% endif %}
+</script>
+{% endblock %}

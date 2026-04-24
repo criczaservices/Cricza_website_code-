@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+
+{% block title %}Cricza - Profile{% endblock %}
+
+{% block content %}
+<div class="container" style="min-height: 60vh; display: flex; justify-content: center; align-items: flex-start;">
+    <div class="pricing-card" style="width: 100%; max-width: 500px; text-align: left; padding: 3rem;">
+        <h2 style="margin-bottom: 2rem; border-bottom: 2px solid var(--accent-color); padding-bottom: 0.5rem; display: inline-block;">My Profile</h2>
+        
+        {% if current_user.profile_pic %}
+        <div style="margin-bottom: 2rem; display: flex; justify-content: center;">
+            <img src="{{ current_user.profile_pic }}" alt="Profile Picture" style="width: 100px; height: 100px; border-radius: 50%; border: 3px solid var(--accent-color); object-fit: cover;">
+        </div>
+        {% endif %}
+        
+        <div style="margin-bottom: 1.5rem;">
+            <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 0.2rem;">Full Name</p>
+            <p style="font-size: 1.2rem; font-weight: 500;">{{ current_user.name }}</p>
+        </div>
+        
+        <div style="margin-bottom: 1.5rem;">
+            <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 0.2rem;">Email Address</p>
+            <p style="font-size: 1.2rem; font-weight: 500;">{{ current_user.email }}</p>
+        </div>
+        
+        <div style="margin-bottom: 1.5rem;">
+            <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 0.2rem;">Member Since</p>
+            <p style="font-size: 1.2rem; font-weight: 500;">{{ current_user.created_at.strftime('%B %Y') }}</p>
+        </div>
+        
+        <div style="margin-top: 3rem;">
+            <a href="/logout" class="btn btn-outline btn-full">Logout</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

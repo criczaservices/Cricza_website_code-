@@ -1,0 +1,102 @@
+{% extends 'base.html' %}
+
+{% block title %}Cricza - My Bookings{% endblock %}
+
+{% block content %}
+<div class="container" style="min-height: 60vh;">
+    <h2 class="section-title" style="text-align: left; margin-bottom: 2rem;">My Bookings</h2>
+    
+    {% if bookings %}
+    <div class="ticket-container">
+        {% for booking in bookings %}
+        <div class="ticket-card" id="ticket-{{ loop.index }}">
+            <div class="ticket-main">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                    <div>
+                        <div class="ticket-turf-name">{{ booking.turf.name }}</div>
+                        <div class="meta-item" style="color: var(--nav-bg); margin-bottom: 0.5rem; font-weight: 600;">
+                            <span class="meta-icon">📍</span> {{ booking.turf.location }}
+                        </div>
+                    </div>
+                    <div style="text-align: right;">
+                        <div style="font-size: 0.75rem; text-transform: uppercase; opacity: 0.7; color: #666;">Playing Date</div>
+                        <div style="font-weight: 800; font-size: 1.1rem; color: #111;">{{ booking.date }}</div>
+                    </div>
+                </div>
+
+                <div class="ticket-status" style="margin: 1rem 0; color: {% if booking.payment_status == 'Success' or booking.razorpay_order_id == 'MANUAL' %}#1a7f37{% else %}#cf222e{% endif %}; font-weight: 700;">
+                    {% if booking.payment_status == 'Success' or booking.razorpay_order_id == 'MANUAL' %}
+                    ✓ BOOKING CONFIRMED
+                    {% else %}
+                    ⚠ PAYMENT PENDING / FAILED
+                    {% endif %}
+                </div>
+                
+                <button class="btn btn-outline show-details-btn" onclick="toggleDetails({{ loop.index }})" style="width: 100%; padding: 0.6rem; font-size: 0.85rem; margin-top: 0.5rem; border: 1px solid #ddd; background: #fff; cursor: pointer; transition: all 0.3s; border-radius: 6px;">
+                    Show Booking Details ↓
+                </button>
+
+                <!-- Detailed View (Hidden by default) -->
+                <div id="details-{{ loop.index }}" class="booking-details-content" style="display: none; margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px dashed #ddd; overflow: hidden; transition: all 0.3s;">
+                    <div class="ticket-meta" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <div class="meta-item">
+                            <span class="meta-icon">⏰</span>
+                            <div>
+                                <div style="font-size: 0.7rem; text-transform: uppercase; opacity: 0.7;">Time Slot</div>
+                                <div style="font-weight: 700; font-size: 0.9rem;">{{ booking.time_slot }}</div>
+                            </div>
+                        </div>
+                        <div class="meta-item">
+                            <span class="meta-icon">💰</span>
+                            <div>
+                                <div style="font-size: 0.7rem; text-transform: uppercase; opacity: 0.7;">Amount</div>
+                                <div style="font-weight: 700; font-size: 1rem; color: #27ae60;">₹{{ booking.cost }}</div>
+                            </div>
+                        </div>
+                        <div class="meta-item" style="grid-column: span 2;">
+                            <span class="meta-icon">📅</span>
+                            <div>
+                                <div style="font-size: 0.7rem; text-transform: uppercase; opacity: 0.7;">Booked On</div>
+                                <div style="font-weight: 600; font-size: 0.85rem; color: #555;">
+                                    {{ (booking.created_at + b_delta).strftime('%d %b %Y, %I:%M %p') }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="ticket-stub">
+                <div class="ticket-qr-mock"></div>
+                <div style="font-size: 0.75rem; text-transform: uppercase; opacity: 0.8; margin-bottom: 0.4rem; color: #000; font-weight: bold;">Order ID</div>
+                <div class="ticket-order-id" style="word-break: break-all; font-size: 0.85rem; font-family: monospace; color: #333; font-weight: 700;">{{ booking.razorpay_payment_id or booking.razorpay_order_id or 'MANUAL' }}</div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <script>
+    function toggleDetails(index) {
+        const content = document.getElementById('details-' + index);
+        const btn = document.querySelector('#ticket-' + index + ' .show-details-btn');
+        
+        if (content.style.display === 'none') {
+            content.style.display = 'block';
+            btn.innerHTML = 'Hide Booking Details ↑';
+            btn.style.background = '#f9f9f9';
+        } else {
+            content.style.display = 'none';
+            btn.innerHTML = 'Show Booking Details ↓';
+            btn.style.background = '#fff';
+        }
+    }
+    </script>
+    {% else %}
+    <div class="pricing-card" style="padding: 3rem; text-align: center;">
+        <h3>No bookings yet</h3>
+        <p style="color: var(--text-secondary); margin: 1rem 0;">You haven't booked any turfs yet. Enjoy premium sports by booking a slot below!</p>
+        <a href="/" class="btn btn-primary">Browse Turfs</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

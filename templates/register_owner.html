@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+
+{% block title %}Cricza - Partner Registration{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="auth-card">
+        <h2>Become a Partner</h2>
+        <p class="auth-subtitle">Finalize your {{ plan }} plan registration.</p>
+        
+        <div class="pricing-card" style="margin-bottom: 2rem; padding: 1rem; border-color: var(--accent-color);">
+            <h3 style="margin-bottom: 0.5rem;">Total Today:</h3>
+            <div class="pricing-price" style="font-size: 2rem;">${{ price }}</div>
+        </div>
+
+        {% with messages = get_flashed_messages() %}
+          {% if messages %}
+            <div class="flash-messages" style="color: #ff4d4d; margin-bottom: 1rem; text-align: center; font-weight: bold;">
+              {% for message in messages %}
+                <p>{{ message }}</p>
+              {% endfor %}
+            </div>
+          {% endif %}
+        {% endwith %}
+
+        <form class="auth-form" action="/register/partner?plan={{ plan }}&price={{ price }}" method="POST">
+            <div class="form-group">
+                <label for="name">Business / Full Name</label>
+                <input type="text" id="name" name="name" required placeholder="Enter your name">
+            </div>
+            <div class="form-group">
+                <label for="email">Email Address</label>
+                <input type="email" id="email" name="email" required placeholder="Enter your email">
+            </div>
+            <div class="form-group">
+                <label for="phone">Phone Number</label>
+                <input type="tel" id="phone" name="phone" required placeholder="Enter your business phone number">
+            </div>
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" required placeholder="Create a strong password">
+            </div>
+            <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1.5rem;">
+                {% if price|float > 0 %}
+                By clicking "Register & Pay", you will be prompted to complete the payment for the {{ plan }}.
+                {% else %}
+                By clicking "Register", you will start your 1-month free trial instantly.
+                {% endif %}
+            </p>
+            <button class="btn btn-primary btn-full" type="submit">
+                {% if price|float > 0 %}Register & Pay{% else %}Register{% endif %}
+            </button>
+        </form>
+    </div>
+</div>
+
+{% if price|float > 0 and registration_success %}
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        startSubscription('{{ plan }}', '{{ price }}');
+    });
+</script>
+{% endif %}
+{% endblock %}

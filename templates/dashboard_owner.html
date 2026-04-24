@@ -1,0 +1,701 @@
+{% extends 'base.html' %}
+{% block title %}Owner Dashboard - Cricza{% endblock %}
+{% block content %}
+<div class="container" style="min-height: 60vh;">
+    <h2 class="section-title" style="text-align: left; margin-bottom: 2rem;">Owner Dashboard</h2>
+
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        <div class="flash-messages" style="color: green; margin-bottom: 1rem; font-weight: bold;">
+          {% for message in messages %}
+            <p>{{ message }}</p>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+    
+    <!-- Top Stats Row -->
+    <div class="resp-grid-3" style="margin-bottom: 2.5rem;">
+        
+        <!-- Subscription Countdown Card -->
+        <div class="dash-card" style="background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); color: white; padding: 1.5rem; border-radius: 16px; position: relative; overflow: hidden;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <h4 style="margin: 0; font-size: 1rem; opacity: 0.8;">Subscription</h4>
+                <span style="background: {% if current_user.subscription_active %}#1a7f37{% else %}#cf222e{% endif %}; padding: 0.2rem 0.6rem; border-radius: 20px; font-size: 0.75rem; font-weight: 600;">
+                    {% if current_user.subscription_active %}Active{% else %}Expired{% endif %}
+                </span>
+            </div>
+            <div style="font-size: 3rem; font-weight: 800; color: #e0f465; line-height: 1;">
+                {{ current_user.subscription_days_left }}
+            </div>
+            <p style="font-size: 0.85rem; opacity: 0.7; margin: 0.5rem 0;">days remaining</p>
+            
+            <!-- Progress Bar -->
+            {% set pct = (current_user.subscription_days_left / 30 * 100) | int %}
+            <div style="background: rgba(255,255,255,0.15); border-radius: 8px; height: 6px; margin-top: 0.5rem; overflow: hidden;">
+                <div style="width: {{ pct }}%; height: 100%; background: #e0f465; border-radius: 8px; transition: width 0.5s;"></div>
+            </div>
+            
+            <div style="margin-top: 1rem; font-size: 0.8rem; opacity: 0.6;">
+                {{ current_user.subscription_plan or 'Free Trial' }} Plan &bull; ₹{{ current_user.subscription_price or 0 }}/mo
+            </div>
+            
+            {% if not current_user.subscription_active or any_suspended %}
+                <div style="margin-top: 1rem; background: rgba(207, 34, 46, 0.1); border: 1px solid rgba(207, 34, 46, 0.3); padding: 0.75rem; border-radius: 8px;">
+                    <p style="font-size: 0.8rem; color: #ffab70; margin: 0 0 0.5rem; font-weight: bold;">
+                        ⚠️ Your turf is suspended and is not visible to others. Please contact the admin team for assistance.
+                    </p>
+                    {% if not current_user.subscription_active %}
+                    <button type="button" class="btn btn-primary" onclick="startSubscription('Paid Plan', 500)" style="width: 100%; padding: 0.5rem; font-size: 0.85rem; background: #e0f465; color: black; border: none;">
+                        Upgrade to Paid Plan — ₹500
+                    </button>
+                    {% endif %}
+                </div>
+            {% endif %}
+        </div>
+        
+        <!-- E-Wallet Card -->
+        <div class="dash-card" style="background: linear-gradient(135deg, #111 0%, #222 100%); color: white; padding: 1.5rem; border-radius: 16px;">
+            <h4 style="margin: 0 0 1rem 0; font-size: 1rem; opacity: 0.8;">E-Wallet Balance</h4>
+            <div style="font-size: 2.5rem; font-weight: 800; color: #e0f465; line-height: 1;">
+                ₹{{ wallet_balance | round(2) }}
+            </div>
+            <p style="font-size: 0.85rem; opacity: 0.6; margin: 0.5rem 0 1rem;">Available for withdrawal</p>
+            <form action="/api/owner/withdraw" method="POST">
+                <button type="submit" class="btn btn-primary" style="width: 100%; padding: 0.5rem; font-size: 0.85rem; background: #e0f465; color: black; border: none;" {% if wallet_balance <= 0 or not current_user.subscription_active %}disabled style="opacity: 0.5; cursor: not-allowed;"{% endif %}>
+                    Request Withdrawal
+                </button>
+            </form>
+        </div>
+        
+        <!-- Quick Stats Card -->
+        <div class="dash-card" style="background: white; padding: 1.5rem; border-radius: 16px; border: 1px solid var(--border-color);">
+            <h4 style="margin: 0 0 1rem 0; font-size: 1rem; color: var(--text-secondary);">Quick Stats</h4>
+            <div class="resp-grid-2-stats">
+                <div>
+                    <div style="font-size: 2rem; font-weight: 800; color: var(--nav-bg);">{{ turfs | length }}</div>
+                    <p style="font-size: 0.8rem; color: var(--text-secondary); margin: 0;">Hosted Turfs</p>
+                </div>
+                <div>
+                    <div style="font-size: 2rem; font-weight: 800; color: var(--nav-bg);">{{ recent_bookings | length }}</div>
+                    <p style="font-size: 0.8rem; color: var(--text-secondary); margin: 0;">Total Bookings</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Host a New Turf Form (Centered and Wider) -->
+    <div style="max-width: 800px; margin: 0 auto 4rem auto;">
+        <div class="pricing-card" style="padding: 2rem; text-align: left; border-color: #e0f465; position: relative; width: 100%;">
+            {% if not current_user.subscription_active %}
+            <div style="position: absolute; top:0; left:0; width:100%; height:100%; background: rgba(255,255,255,0.7); z-index: 5; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(2px);">
+                <div style="text-align: center; padding: 1rem;">
+                    <p style="font-weight: bold; color: #cf222e;">Subscription Expired</p>
+                    <p style="font-size: 0.8rem; color: #333;">Please renew to host new turfs.</p>
+                </div>
+            </div>
+            {% endif %}
+            <h3 style="margin-bottom: 0.5rem;">Host a New Turf</h3>
+            <p style="color: var(--text-secondary); font-size: 1rem; margin-bottom: 2rem;">Fill out the details below to list a new turf on the live homepage instantly.</p>
+            <form action="/api/turf/add" method="POST">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+                    <div class="form-group">
+                        <label for="name" style="font-size: 0.9rem;">Turf Name</label>
+                        <input type="text" id="name" name="name" required style="width:100%; padding: 0.7rem; border-radius: 6px; border: 1px solid var(--border-color);">
+                    </div>
+                    <div class="form-group">
+                        <label for="location" style="font-size: 0.9rem;">Location Details</label>
+                        <input type="text" id="location" name="location" required style="width:100%; padding: 0.7rem; border-radius: 6px; border: 1px solid var(--border-color);">
+                    </div>
+                </div>
+
+                <div class="form-group" style="margin-bottom: 1.5rem;">
+                    <label for="description" style="font-size: 0.9rem;">Description</label>
+                    <textarea id="description" name="description" rows="3" style="width:100%; padding: 0.7rem; border-radius: 6px; border: 1px solid var(--border-color); font-family: inherit;"></textarea>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
+                    <div class="form-group">
+                        <label for="pincode" style="font-size: 0.9rem;">Pincode</label>
+                        <input type="text" id="pincode" name="pincode" maxlength="10" style="width:100%; padding: 0.7rem; border-radius: 6px; border: 1px solid var(--border-color);" placeholder="e.g. 411001">
+                    </div>
+                    <div class="form-group">
+                        <label for="price_per_hour" style="font-size: 0.9rem;">Price per Hour (₹)</label>
+                        <input type="number" id="price_per_hour" name="price_per_hour" required style="width:100%; padding: 0.7rem; border-radius: 6px; border: 1px solid var(--border-color);">
+                    </div>
+                    <div class="form-group">
+                        <label for="photo_url" style="font-size: 0.9rem;">Photo URL</label>
+                        <input type="url" id="photo_url" name="photo_url" style="width:100%; padding: 0.7rem; border-radius: 6px; border: 1px solid var(--border-color);" placeholder="https://example.com/image.jpg">
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2rem;">
+                    <div class="form-group">
+                        <label for="open_time" style="font-size: 0.9rem;">Open Time (0-23)</label>
+                        <input type="number" id="open_time" name="open_time" min="0" max="23" required style="width:100%; padding: 0.7rem; border-radius: 6px; border: 1px solid var(--border-color);">
+                    </div>
+                    <div class="form-group">
+                        <label for="close_time" style="font-size: 0.9rem;">Close Time (1-24)</label>
+                        <input type="number" id="close_time" name="close_time" min="1" max="24" required style="width:100%; padding: 0.7rem; border-radius: 6px; border: 1px solid var(--border-color);">
+                    </div>
+                </div>
+                <button class="btn btn-primary btn-full" type="submit" style="background: #e0f465; color: black; border: none; font-weight: bold; padding: 1rem;">Upload Turf</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Dashboard Content -->
+    <div style="display: flex; flex-direction: column; gap: 4rem;">
+        <!-- My Hosted Turfs -->
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <h3>My Hosted Turfs</h3>
+            </div>
+            
+            {% if turfs %}
+                {% for turf in turfs %}
+                <div class="turf-card" style="padding: 1.5rem; margin-bottom: 1.5rem; display: flex; gap: 1rem; flex-direction: column;">
+                    <div class="turf-card-row" style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
+                        <div style="width: 150px; height: 100px; background-color: #eee; border-radius: 8px; flex-shrink: 0; min-width: 120px;">
+                           {% if turf.photo_url %}
+                           <img src="{{ turf.photo_url }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px;">
+                           {% else %}
+                           <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; color: #999;">No Image</div>
+                           {% endif %}
+                        </div>
+                        <div style="flex: 1;">
+                            <h4>{{ turf.name }}</h4>
+                            <p style="margin: 0.25rem 0; font-size: 0.9rem; color: var(--text-secondary);">{{ turf.location }} {% if turf.pincode %}<span style="background: #f0f0f0; padding: 0.1rem 0.4rem; border-radius: 4px; font-size: 0.8rem; margin-left: 0.25rem;">{{ turf.pincode }}</span>{% endif %}</p>
+                            <p style="font-weight: bold; color: var(--nav-bg); margin: 0;">₹{{ turf.price_per_hour }} / hr</p>
+                        </div>
+                        <div style="display: flex; gap: 0.5rem; flex-shrink: 0;">
+                            <button class="btn btn-outline" style="padding: 0.4rem 0.8rem; font-size: 0.8rem;" onclick="toggleEdit({{ turf.id }})">✏️ Edit</button>
+                            <button class="btn btn-outline" style="padding: 0.4rem 0.8rem; font-size: 0.8rem;" onclick="toggleOffDates({{ turf.id }})">📅 Off-Dates</button>
+                            <button class="btn btn-primary" style="padding: 0.4rem 0.8rem; font-size: 0.8rem; background-color: #000; color: #fff;" onclick="toggleCoupon({{ turf.id }})">🎟️ Coupons</button>
+                        </div>
+                    </div>
+                    
+                    <!-- Coupon Management (Hidden by Default) -->
+                    <div id="coupon-panel-{{ turf.id }}" style="display: none; background: #f4f6ff; padding: 1.25rem; border-radius: 10px; border: 1px solid #d1d9ff; margin-top: 0.5rem;">
+                        <h4 style="margin-bottom: 0.75rem; font-size: 0.95rem;">🎟️ Manage Coupons</h4>
+                        
+                        {% if turf.coupon %}
+                        <div style="background: white; padding: 1rem; border-radius: 8px; border: 1px solid #d1d9ff; margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <p style="margin: 0; font-weight: bold; color: #333;">Active Code: <span style="font-family: monospace; background: #eee; padding: 0.2rem 0.5rem; border-radius: 4px;">{{ turf.coupon.code }}</span></p>
+                                <p style="margin: 0.25rem 0 0; font-size: 0.85rem; color: #666;">Discount: <b>₹{{ turf.coupon.discount_amount }}</b> | Limit: {{ turf.coupon.used_count }}/{{ turf.coupon.usage_limit }} | Ends: {{ turf.coupon.valid_until }}</p>
+                            </div>
+                            <form action="/api/turf/{{ turf.id }}/coupon/remove" method="POST" style="margin: 0;">
+                                <button type="submit" class="btn" style="background: #ff4d4d; color: white; padding: 0.4rem 0.8rem; font-size: 0.8rem;">Delete</button>
+                            </form>
+                        </div>
+                        <p style="font-size: 0.8rem; color: #777;"><i>Creating a new coupon will replace the existing one.</i></p>
+                        {% else %}
+                        <p style="font-size: 0.85rem; color: #666; margin-bottom: 1rem;">No active coupon for this turf. Create one to attract more customers!</p>
+                        {% endif %}
+
+                        <form action="/api/turf/{{ turf.id }}/coupon/add" method="POST">
+                            <div class="resp-grid-edit">
+                                <div class="form-group" style="margin-bottom: 0.5rem;">
+                                    <label style="font-size: 0.8rem;">Coupon Code</label>
+                                    <input type="text" name="code" placeholder="SAVE10" required style="width:100%; padding: 0.4rem; border-radius: 4px; border: 1px solid var(--border-color); font-size: 0.85rem;">
+                                </div>
+                                <div class="form-group" style="margin-bottom: 0.5rem;">
+                                    <label style="font-size: 0.8rem;">Discount Amount (₹)</label>
+                                    <input type="number" name="discount" step="0.01" required style="width:100%; padding: 0.4rem; border-radius: 4px; border: 1px solid var(--border-color); font-size: 0.85rem;">
+                                </div>
+                                <div class="form-group" style="margin-bottom: 0.5rem;">
+                                    <label style="font-size: 0.8rem;">Usage Limit</label>
+                                    <input type="number" name="limit" value="10" required style="width:100%; padding: 0.4rem; border-radius: 4px; border: 1px solid var(--border-color); font-size: 0.85rem;">
+                                </div>
+                                <div class="form-group" style="margin-bottom: 0.5rem;">
+                                    <label style="font-size: 0.8rem;">Valid Until</label>
+                                    <input type="date" name="expiry" required style="width:100%; padding: 0.4rem; border-radius: 4px; border: 1px solid var(--border-color); font-size: 0.85rem;">
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-primary" style="margin-top: 0.75rem; padding: 0.5rem 1.5rem; font-size: 0.85rem; background: var(--nav-bg); color: white;">Set Coupon</button>
+                        </form>
+                    </div>
+                    
+                    <!-- Edit Form (Hidden by Default) -->
+                    <div id="edit-form-{{ turf.id }}" style="display: none; background: #fafafa; padding: 1.25rem; border-radius: 10px; border: 1px solid var(--border-color); margin-top: 0.5rem;">
+                        <h4 style="margin-bottom: 1rem; font-size: 0.95rem;">Edit Turf Details</h4>
+                        <form action="/api/turf/{{ turf.id }}/edit" method="POST">
+                            <div class="resp-grid-edit">
+                                <div class="form-group" style="margin-bottom: 0.5rem;">
+                                    <label style="font-size: 0.8rem;">Name</label>
+                                    <input type="text" name="name" value="{{ turf.name }}" required style="width:100%; padding: 0.4rem; border-radius: 4px; border: 1px solid var(--border-color); font-size: 0.85rem;">
+                                </div>
+                                <div class="form-group" style="margin-bottom: 0.5rem;">
+                                    <label style="font-size: 0.8rem;">Location</label>
+                                    <input type="text" name="location" value="{{ turf.location }}" required style="width:100%; padding: 0.4rem; border-radius: 4px; border: 1px solid var(--border-color); font-size: 0.85rem;">
+                                </div>
+                                <div class="form-group" style="margin-bottom: 0.5rem;">
+                                    <label style="font-size: 0.8rem;">Pincode</label>
+                                    <input type="text" name="pincode" value="{{ turf.pincode or '' }}" maxlength="10" style="width:100%; padding: 0.4rem; border-radius: 4px; border: 1px solid var(--border-color); font-size: 0.85rem;">
+                                </div>
+                                <div class="form-group" style="margin-bottom: 0.5rem;">
+                                    <label style="font-size: 0.8rem;">Price / hr ($)</label>
+                                    <input type="number" name="price_per_hour" value="{{ turf.price_per_hour }}" required style="width:100%; padding: 0.4rem; border-radius: 4px; border: 1px solid var(--border-color); font-size: 0.85rem;">
+                                </div>
+                                <div class="form-group" style="margin-bottom: 0.5rem; grid-column: 1 / -1;">
+                                    <label style="font-size: 0.8rem;">Description</label>
+                                    <textarea name="description" rows="2" style="width:100%; padding: 0.4rem; border-radius: 4px; border: 1px solid var(--border-color); font-size: 0.85rem;">{{ turf.description or '' }}</textarea>
+                                </div>
+                                <div class="form-group" style="margin-bottom: 0.5rem; grid-column: 1 / -1;">
+                                    <label style="font-size: 0.8rem;">Photo URL</label>
+                                    <input type="url" name="photo_url" value="{{ turf.photo_url or '' }}" style="width:100%; padding: 0.4rem; border-radius: 4px; border: 1px solid var(--border-color); font-size: 0.85rem;">
+                                </div>
+                                <div class="form-group" style="margin-bottom: 0.5rem;">
+                                    <label style="font-size: 0.8rem;">Open Time</label>
+                                    <input type="number" name="open_time" value="{{ turf.open_time }}" min="0" max="23" style="width:100%; padding: 0.4rem; border-radius: 4px; border: 1px solid var(--border-color); font-size: 0.85rem;">
+                                </div>
+                                <div class="form-group" style="margin-bottom: 0.5rem;">
+                                    <label style="font-size: 0.8rem;">Close Time</label>
+                                    <input type="number" name="close_time" value="{{ turf.close_time }}" min="1" max="24" style="width:100%; padding: 0.4rem; border-radius: 4px; border: 1px solid var(--border-color); font-size: 0.85rem;">
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-primary" style="margin-top: 0.75rem; padding: 0.5rem 1.5rem; font-size: 0.85rem;">Save Changes</button>
+                        </form>
+                    </div>
+                    
+                    <!-- Off-Dates Panel (Hidden by Default) -->
+                    <div id="off-dates-{{ turf.id }}" style="display: none; background: #fff8f0; padding: 1.25rem; border-radius: 10px; border: 1px solid #f0d9b5; margin-top: 0.5rem;">
+                        <h4 style="margin-bottom: 0.75rem; font-size: 0.95rem;">📅 Manage Off-Dates</h4>
+                        <p style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 1rem;">Mark specific dates when this turf will be unavailable for booking.</p>
+                        
+                        <form action="/api/turf/{{ turf.id }}/off-date" method="POST" style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
+                            <input type="date" name="off_date" required style="flex: 1; padding: 0.4rem; border-radius: 4px; border: 1px solid var(--border-color); font-size: 0.85rem;">
+                            <button type="submit" class="btn btn-primary" style="padding: 0.4rem 1rem; font-size: 0.85rem;">Add</button>
+                        </form>
+                        
+                        {% if turf.off_dates %}
+                        <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                            {% for od in turf.off_dates %}
+                            <div style="display: inline-flex; align-items: center; gap: 0.25rem; background: #fff; border: 1px solid #e5c49a; padding: 0.25rem 0.6rem; border-radius: 20px; font-size: 0.8rem;">
+                                {{ od.off_date }}
+                                <form action="/api/turf/{{ turf.id }}/off-date/remove" method="POST" style="margin: 0; display: inline;">
+                                    <input type="hidden" name="off_date" value="{{ od.off_date }}">
+                                    <button type="submit" style="background: none; border: none; color: #cf222e; cursor: pointer; font-size: 0.9rem; padding: 0; line-height: 1;">✕</button>
+                                </form>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        <p style="font-size: 0.8rem; color: var(--text-secondary);">No off-dates set.</p>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div style="background: white; padding: 3rem; text-align: center; border-radius: 12px; border: 1px solid var(--border-color);">
+                    <p style="margin-bottom: 1rem; color: var(--text-secondary);">You have not hosted any turfs yet.</p>
+                    <p>Use the form on the left to upload your first turf.</p>
+                </div>
+            {% endif %}
+            
+            <!-- Recent Bookings Table -->
+            <div class="section-header-row" style="margin-top: 3rem; margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
+                <h3>Recent Bookings</h3>
+                <div style="position: relative; width: 100%; max-width: 300px;">
+                    <input type="text" id="orderSearch" onkeyup="filterOrders()" placeholder="Verify Order ID..." style="width: 100%; padding: 0.6rem 1rem; border-radius: 8px; border: 1px solid var(--border-color); outline: none;">
+                </div>
+            </div>
+            
+            <div class="table-container" style="background: white; border-radius: 12px; border: 1px solid var(--border-color); overflow: hidden; margin-top: 1rem;">
+                {% if recent_bookings %}
+                <div style="overflow-x: auto; max-height: 500px;">
+                    <table style="width: 100%; border-collapse: collapse; table-layout: fixed; min-width: 950px;">
+                        <thead style="position: sticky; top: 0; z-index: 10; background: #000; color: white;">
+                            <tr>
+                                <th style="padding: 1.2rem 1rem; text-align: left; width: 180px; font-weight: 600; font-size: 0.8rem; letter-spacing: 1px;">ORDER ID</th>
+                                <th style="padding: 1.2rem 1rem; text-align: left; width: 180px; font-weight: 600; font-size: 0.8rem; letter-spacing: 1px;">CUSTOMER</th>
+                                <th style="padding: 1.2rem 1rem; text-align: left; width: 140px; font-weight: 600; font-size: 0.8rem; letter-spacing: 1px;">TURF</th>
+                                <th style="padding: 1.2rem 1rem; text-align: left; width: 160px; font-weight: 600; font-size: 0.8rem; letter-spacing: 1px;">BOOKED ON</th>
+                                <th style="padding: 1.2rem 1rem; text-align: left; width: 180px; font-weight: 600; font-size: 0.8rem; letter-spacing: 1px;">PLAYING DETAILS</th>
+                                <th style="padding: 1.2rem 1rem; text-align: right; width: 100px; font-weight: 600; font-size: 0.8rem; letter-spacing: 1px;">AMOUNT</th>
+                                <th style="padding: 1.2rem 1rem; text-align: center; width: 80px; font-weight: 600; font-size: 0.8rem; letter-spacing: 1px;">ACTION</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in recent_bookings %}
+                            <tr style="border-bottom: 1px solid #eee; transition: background 0.2s;" class="order-row hover-row">
+                                <td style="padding: 1rem; width: 180px; font-family: monospace; font-weight: 700; color: #444; font-size: 0.85rem;">{{ item.order_id }}</td>
+                                <td style="padding: 1rem; width: 180px;">
+                                    <div style="font-weight: 600; color: #000;">{{ item.customer_name }}</div>
+                                    {% if item.is_manual %}
+                                    <span style="font-size: 0.6rem; color: #f39c12; font-weight: 900; background: #fff9eb; padding: 2px 4px; border-radius: 4px;">OFFLINE</span>
+                                    {% endif %}
+                                </td>
+                                <td style="padding: 1rem; width: 140px; color: #555; font-size: 0.9rem;">{{ item.turf_name }}</td>
+                                <td style="padding: 1rem; width: 160px; font-size: 0.8rem; color: #888;">{{ item.created_at }}</td>
+                                <td style="padding: 1rem; width: 180px;">
+                                    <div style="font-weight: 700; font-size: 0.9rem;">{{ item.date }}</div>
+                                    <div style="font-size: 0.8rem; color: #666;">{{ item.time_slot }}</div>
+                                </td>
+                                <td style="padding: 1rem; width: 100px; text-align: right; font-weight: 800; color: {% if item.is_manual %}#999{% else %}#2ecc71{% endif %};">₹{{ item.cost }}</td>
+                                <td style="padding: 1rem; width: 80px; text-align: center;">
+                                    <button onclick="showBookingDetails('{{ item|tojson|forceescape }}')" style="background: var(--nav-bg); color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 0.7rem; font-weight: 600;">View</button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% endif %}
+            </div>
+            
+            <!-- Withdrawal History -->
+            <div style="margin-top: 3rem;">
+                <div class="section-header-row" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.75rem;">
+                    <h3>Withdrawal History</h3>
+                    <div style="position: relative; width: 100%; max-width: 250px;">
+                        <input type="text" id="withdrawalSearch" onkeyup="filterWithdrawals()" placeholder="Search by date..." style="width: 100%; padding: 0.6rem 1rem; border-radius: 8px; border: 1px solid var(--border-color); outline: none; font-size: 0.9rem;">
+                    </div>
+                </div>
+                <div class="table-container">
+                    {% if withdrawals %}
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <thead style="background: #f6f8fa;">
+                            <tr>
+                                <th style="padding: 0.8rem 1rem; text-align: left; font-size: 0.9rem;">Date</th>
+                                <th style="padding: 0.8rem 1rem; text-align: left; font-size: 0.9rem;">Amount</th>
+                                <th style="padding: 0.8rem 1rem; text-align: left; font-size: 0.9rem;">Status</th>
+                                <th style="padding: 0.8rem 1rem; text-align: left; font-size: 0.9rem;">Paid On</th>
+                            </tr>
+                        </thead>
+                    </table>
+                    <div style="max-height: 280px; overflow-y: auto;">
+                        <table style="width: 100%; border-collapse: collapse;">
+                            <tbody>
+                                {% for wd in withdrawals %}
+                                <tr style="border-bottom: 1px solid var(--border-color);" class="wd-row">
+                                    <td style="padding: 0.8rem 1rem; font-size: 0.9rem;">{{ wd.created_at.strftime('%d %b %Y') }}</td>
+                                    <td style="padding: 0.8rem 1rem; font-size: 0.9rem; font-weight: bold;">₹{{ wd.amount }}</td>
+                                    <td style="padding: 0.8rem 1rem;">
+                                        {% if wd.status == 'Paid' %}
+                                        <span style="background: #dafbe1; color: #1a7f37; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.8rem; font-weight: 600;">Paid</span>
+                                        {% else %}
+                                        <span style="background: #fff8c5; color: #9a6700; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.8rem; font-weight: 600;">Pending</span>
+                                        {% endif %}
+                                    </td>
+                                    <td style="padding: 0.8rem 1rem; font-size: 0.85rem; color: var(--text-secondary);">{{ wd.paid_at.strftime('%d %b %Y') if wd.paid_at else '—' }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div style="padding: 2rem; text-align: center;">
+                        <p style="color: var(--text-secondary); font-size: 0.9rem;">No withdrawal requests yet.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Bottom Control Grid -->
+            <div class="resp-grid-2" style="margin-top: 3rem; gap: 2rem;">
+                <!-- Manual Booking Section -->
+                <div class="pricing-card" style="padding: 1.5rem; text-align: left; background: #fdfdfd; border-style: dashed; border-width: 2px; position: relative; margin: 0;">
+                    {% if not current_user.subscription_active %}
+                    <div style="position: absolute; top:0; left:0; width:100%; height:100%; background: rgba(255,255,255,0.7); z-index: 5; border-radius: 12px;"></div>
+                    {% endif %}
+                    <h3 style="display: flex; align-items: center; gap: 0.5rem;">Manual Booking</h3>
+                    <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 1.5rem;">Book a slot for a walk-in customer who pays cash offline.</p>
+                    <div class="form-group" style="margin-bottom: 1.5rem;">
+                        <label for="manual-turf-select" style="font-size: 0.9rem;">Select Turf</label>
+                        <select id="manual-turf-select" style="width: 100%; padding: 0.6rem; border-radius: 6px; border: 1px solid var(--border-color); font-family: inherit;">
+                            <option value="">-- Select Turf To Book --</option>
+                            {% for turf in turfs %}
+                            <option value="{{ turf.id }}" 
+                                    data-name="{{ turf.name }}" 
+                                    data-price="{{ turf.price_per_hour }}"
+                                    data-open="{{ turf.open_time }}"
+                                    data-close="{{ turf.close_time }}">
+                                {{ turf.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <button class="btn btn-nav btn-full" type="button" onclick="openManualBooking()" {% if not current_user.subscription_active %}disabled style="opacity: 0.5; background: #ccc;"{% endif %}>Open Booking Modal</button>
+                </div>
+
+                <!-- Razorpay Settings Section -->
+                <div class="pricing-card" style="padding: 1.5rem; text-align: left; border: 2px solid #222; background: #fff; border-radius: 16px; margin: 0;">
+                    <h3 style="display: flex; align-items: center; gap: 0.5rem;">💳 Payment Settings</h3>
+                    <p style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 1rem;">Enter your Razorpay credentials to receive booking payments directly.</p>
+                    
+                    <form action="/api/owner/update-keys" method="POST">
+                        <div class="form-group" style="margin-bottom: 1rem;">
+                            <label style="font-size: 0.8rem; font-weight: 600;">Key ID</label>
+                            <input type="text" name="key_id" value="{{ current_user.razorpay_key_id or '' }}" placeholder="rzp_live_..." required style="width:100%; padding: 0.5rem; border-radius: 4px; border: 1px solid var(--border-color);">
+                        </div>
+                        <div class="form-group" style="margin-bottom: 1rem;">
+                            <label style="font-size: 0.8rem; font-weight: 600;">Key Secret</label>
+                            <input type="password" name="key_secret" value="{{ current_user.razorpay_key_secret or '' }}" placeholder="••••••••••••" required style="width:100%; padding: 0.5rem; border-radius: 4px; border: 1px solid var(--border-color);">
+                        </div>
+                        <div style="display: flex; gap: 1rem;">
+                            <button type="submit" class="btn btn-primary" style="flex: 1; background: #222; color: white; border: none; font-size: 0.85rem; padding: 0.6rem;">Update Credentials</button>
+                            
+                            {% if current_user.razorpay_key_id %}
+                            <button type="button" class="btn" style="flex: 1; background: #fff; color: #cf222e; border: 1px solid #cf222e; font-size: 0.85rem; padding: 0.6rem;" 
+                                    onclick="if(confirm('Are you sure you want to delete your Razorpay credentials? Payments will fallback to Cricza admin.')) { document.getElementById('delete-keys-form').submit(); }">
+                                Delete Keys
+                            </button>
+                            {% endif %}
+                        </div>
+                    </form>
+
+                    <form id="delete-keys-form" action="/api/owner/delete-keys" method="POST" style="display: none;"></form>
+                    
+                    {% if current_user.razorpay_key_id %}
+                    <div style="margin-top: 1rem; padding: 0.5rem; background: #e6ffed; border-radius: 6px; border: 1px solid #acf2bd; display: flex; align-items: center; gap: 0.5rem;">
+                        <span style="color: #1a7f37; font-size: 0.9rem;">✅ Direct payments active</span>
+                    </div>
+                    {% else %}
+                    <div style="margin-top: 1rem; padding: 0.5rem; background: #fff5b1; border-radius: 6px; border: 1px solid #ffe066; display: flex; align-items: center; gap: 0.5rem;">
+                        <span style="color: #856404; font-size: 0.8rem;">ℹ️ Falls back to Cricza's account</span>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+// Toggle edit form
+function toggleEdit(turfId) {
+    const el = document.getElementById('edit-form-' + turfId);
+    el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+
+// Toggle off-dates panel
+function toggleOffDates(turfId) {
+    const el = document.getElementById('off-dates-' + turfId);
+    el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+
+// Toggle coupon panel
+function toggleCoupon(turfId) {
+    const el = document.getElementById('coupon-panel-' + turfId);
+    el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+
+// Order search filter
+function filterOrders() {
+    const input = document.getElementById("orderSearch");
+    const filter = input.value.toUpperCase();
+    const rows = document.getElementsByClassName("order-row");
+
+    for (let i = 0; i < rows.length; i++) {
+        const orderIdCell = rows[i].getElementsByTagName("td")[0];
+        if (orderIdCell) {
+            const txtValue = orderIdCell.textContent || orderIdCell.innerText;
+            if (txtValue.toUpperCase().indexOf(filter) > -1) {
+                rows[i].style.display = "";
+            } else {
+                rows[i].style.display = "none";
+            }
+        }
+    }
+}
+// Withdrawal search filter (by date)
+function filterWithdrawals() {
+    const input = document.getElementById("withdrawalSearch");
+    const filter = input.value.toUpperCase();
+    const rows = document.getElementsByClassName("wd-row");
+    for (let i = 0; i < rows.length; i++) {
+        const dateCell = rows[i].getElementsByTagName("td")[0];
+        if (dateCell) {
+            const txtValue = dateCell.textContent || dateCell.innerText;
+            if (txtValue.toUpperCase().indexOf(filter) > -1) {
+                rows[i].style.display = "";
+            } else {
+                rows[i].style.display = "none";
+            }
+        }
+    }
+}
+
+// Manual Booking Section helper
+function openManualBooking() {
+    const select = document.getElementById('manual-turf-select');
+    const option = select.options[select.selectedIndex];
+    
+    if (!option || option.value === "") {
+        alert("Please select a turf first.");
+        return;
+    }
+    
+    const id = option.value;
+    const name = option.getAttribute('data-name');
+    const price = option.getAttribute('data-price');
+    const open = option.getAttribute('data-open');
+    const close = option.getAttribute('data-close');
+    
+    // Call the global function in main.js
+    openBookingModal(id, name, price, open, close);
+    
+    // Change the button text in the modal for clarity
+    setTimeout(() => {
+        const modalBtn = document.querySelector('#booking-modal .btn-primary');
+        if (modalBtn) modalBtn.textContent = 'Confirm Manual Booking';
+    }, 50);
+}
+</script>
+
+<!-- Booking Modal for Manual Booking -->
+<div id="booking-modal" class="modal">
+    <div class="modal-content">
+        <span class="close-modal" onclick="closeBookingModal()">&times;</span>
+        <h2 id="modal-turf-name">Turf Name</h2>
+        <p class="modal-subtitle">Select a time slot</p>
+        
+        <!-- Offline Customer Details (Only for Owner) -->
+        <div id="offline-customer-section" style="background: #fdfdfd; padding: 1.25rem; border: 1px dashed var(--border-color); border-radius: 12px; margin-bottom: 1.5rem;">
+            <p style="margin-top: 0; font-weight: 700; font-size: 1rem; color: var(--nav-bg); margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+                👤 Offline Customer Details
+            </p>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+                <div class="form-group" style="margin: 0;">
+                    <label for="offline-name" style="font-size: 0.85rem; margin-bottom: 0.4rem;">Customer Name</label>
+                    <input type="text" id="offline-name" placeholder="E.g. John Doe" style="width: 100%; padding: 0.7rem; border: 1px solid var(--border-color); border-radius: 8px; font-family: inherit;">
+                </div>
+                <div class="form-group" style="margin: 0;">
+                    <label for="offline-email" style="font-size: 0.85rem; margin-bottom: 0.4rem;">Email ID (Optional)</label>
+                    <input type="email" id="offline-email" placeholder="john@example.com" style="width: 100%; padding: 0.7rem; border: 1px solid var(--border-color); border-radius: 8px; font-family: inherit;">
+                </div>
+                <div class="form-group" style="margin: 0;">
+                    <label for="offline-phone" style="font-size: 0.85rem; margin-bottom: 0.4rem;">Phone Number</label>
+                    <input type="tel" id="offline-phone" placeholder="9876543210" style="width: 100%; padding: 0.7rem; border: 1px solid var(--border-color); border-radius: 8px; font-family: inherit;">
+                </div>
+            </div>
+        </div>
+        
+        <div class="form-group" style="margin-bottom: 1.5rem;">
+            <label for="booking-date" style="font-weight: 500; font-size: 0.95rem;">Select Date (Next 3 Days)</label>
+            <input type="date" id="booking-date" class="form-control" style="width: 100%; padding: 0.8rem; border: 1px solid var(--border-color); border-radius: 6px; margin-top: 0.5rem; font-family: inherit;">
+        </div>
+        
+        <div class="time-slots-container-wrapper" style="margin-bottom: 1.5rem;">
+            <!-- Categories will be injected here -->
+            <div id="time-slots-container"></div>
+        </div>
+
+        <!-- Coupon Section -->
+        <div class="coupon-section" id="coupon-modal-section">
+            <label style="font-weight: 500; font-size: 0.9rem;">Have a Coupon Code?</label>
+            <div class="coupon-input-container">
+                <input type="text" id="coupon-code-input" class="form-control" placeholder="Enter Code" style="flex: 1; padding: 0.6rem; border: 1px solid var(--border-color); border-radius: 6px; text-transform: uppercase;">
+                <button type="button" class="btn btn-nav" style="background: var(--nav-bg); color: white; padding: 0.6rem 1.2rem; font-size: 0.85rem;" onclick="applyCoupon()">Apply</button>
+            </div>
+            <div id="coupon-feedback"></div>
+        </div>
+        
+        <div id="modal-footer" style="padding-top: 1.5rem; border-top: 1px solid var(--border-color); text-align: right; display: none; margin-top: 1.5rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <div style="text-align: left;">
+                    <span id="selected-slots-count" style="font-size: 0.9rem; color: var(--text-secondary);">0 slots selected</span>
+                </div>
+                <p style="font-size: 1.2rem; margin: 0;">Total: <span style="font-weight: bold; color: #1a7f37; font-size: 1.8rem;">₹<span id="booking-total-price">0</span></span></p>
+            </div>
+            <button class="btn btn-primary btn-full" style="padding: 1rem;" onclick="processMultiBooking()">Confirm Manual Booking</button>
+        </div>
+    </div>
+</div>
+<!-- Booking Detail Modal (New) -->
+<div id="booking-detail-modal" class="modal">
+    <div class="modal-content" style="max-width: 500px;">
+        <span class="close-modal" onclick="closeDetailModal()">&times;</span>
+        <h2 style="margin-bottom: 0.5rem;">Booking Details</h2>
+        <div id="detail-modal-body" style="border-top: 1px solid #eee; padding-top: 1.5rem; margin-top: 1rem;">
+            <!-- Content will be injected by JS -->
+        </div>
+        <div style="margin-top: 2rem; text-align: center;">
+            <button class="btn btn-outline" onclick="closeDetailModal()">Close Details</button>
+        </div>
+    </div>
+</div>
+
+<script>
+// Booking Detail Modal Functions
+function showBookingDetails(dataStr) {
+    const data = JSON.parse(dataStr);
+    const body = document.getElementById('detail-modal-body');
+    const modal = document.getElementById('booking-detail-modal');
+    
+    body.innerHTML = `
+        <div style="display: flex; flex-direction: column; gap: 1.25rem;">
+            <div style="display: flex; flex-direction: column;">
+                <span style="font-size: 0.75rem; color: #888; text-transform: uppercase; font-weight: bold;">Order ID</span>
+                <span style="font-family: monospace; font-weight: bold; color: #333;">${data.order_id}</span>
+            </div>
+            
+            <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #f9f9f9; padding-bottom: 0.75rem;">
+                <div style="display: flex; flex-direction: column;">
+                    <span style="font-size: 0.75rem; color: #888; text-transform: uppercase;">Customer Name</span>
+                    <span style="font-weight: 600;">${data.customer_name}</span>
+                </div>
+            </div>
+            
+            <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #f9f9f9; padding-bottom: 0.75rem;">
+                <div style="display: flex; flex-direction: column;">
+                    <span style="font-size: 0.75rem; color: #888; text-transform: uppercase;">Contact Email</span>
+                    <span style="font-weight: 600;">${data.customer_email || 'N/A'}</span>
+                </div>
+                <div style="display: flex; flex-direction: column;">
+                    <span style="font-size: 0.75rem; color: #888; text-transform: uppercase;">Contact Phone</span>
+                    <span style="font-weight: 700; color: #000;">${data.customer_phone || 'N/A'}</span>
+                </div>
+            </div>
+            
+            <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #f9f9f9; padding-bottom: 0.75rem;">
+                <div style="display: flex; flex-direction: column;">
+                    <span style="font-size: 0.75rem; color: #888; text-transform: uppercase;">Turf Booked</span>
+                    <span style="font-weight: 600;">${data.turf_name}</span>
+                </div>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                <div style="display: flex; flex-direction: column;">
+                    <span style="font-size: 0.75rem; color: #888; text-transform: uppercase;">Playing Date</span>
+                    <span style="font-weight: 600;">${data.date}</span>
+                </div>
+                <div style="display: flex; flex-direction: column;">
+                    <span style="font-size: 0.75rem; color: #888; text-transform: uppercase;">Amount Paid</span>
+                    <span style="font-weight: 700; color: #27ae60;">₹${data.cost}</span>
+                </div>
+            </div>
+            
+            <div style="display: flex; flex-direction: column;">
+                <span style="font-size: 0.75rem; color: #888; text-transform: uppercase;">Time Slot(s)</span>
+                <span style="font-weight: 600; background: #f0f0f0; padding: 0.5rem; border-radius: 4px;">${data.time_slot}</span>
+            </div>
+            
+            <div style="display: flex; flex-direction: column;">
+                <span style="font-size: 0.75rem; color: #888; text-transform: uppercase;">Booked On</span>
+                <span style="font-weight: 600;">${data.created_at}</span>
+            </div>
+        </div>
+    `;
+    
+    modal.style.display = 'flex';
+    setTimeout(() => { modal.classList.add('show'); }, 10);
+}
+
+function closeDetailModal() {
+    const modal = document.getElementById('booking-detail-modal');
+    if (modal) {
+        modal.classList.remove('show');
+        setTimeout(() => { modal.style.display = 'none'; }, 300);
+    }
+}
+</script>
+
+<style>
+.hover-row:hover {
+    background-color: #fafafa !important;
+}
+</style>
+{% endblock %}
+
+

@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Cricza - Premium Cricket Turf Booking{% endblock %}</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}?v=2">
+    <meta name="description" content="Book premium cricket turfs easily with Cricza. Find the best venues, check availability, and play your game!">
+</head>
+<body>
+    <!-- Global Loader -->
+    <div id="cricza-loader" class="loader-overlay">
+        <div class="loader-content">
+            <div class="loader-spinner"></div>
+            <div class="loader-text">Cricza</div>
+        </div>
+    </div>
+
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="/" class="brand-logo">
+                <img src="{{ url_for('static', filename='image/logo.png') }}" alt="Cricza Logo" class="logo-img">
+            </a>
+            <ul class="nav-links">
+                <li><a href="/">Home</a></li>
+                <li><a href="/#about">About</a></li>
+                <li><a href="/booking">Booking</a></li>
+                <li><a href="/partner">Be our partner</a></li>
+                <li><a href="/#contact">Contact</a></li>
+                <li><a href="/#policies">Policies</a></li>
+            </ul>
+            <div class="nav-auth">
+                {% if current_user.is_authenticated %}
+                    {% if current_user.role == 'Admin' %}
+                        <a href="/dashboard/admin" class="btn btn-outline" style="color: white; border-color: white;">Admin Dashboard</a>
+                    {% elif current_user.role == 'Owner' %}
+                        <a href="/dashboard/owner" class="btn btn-outline" style="color: white; border-color: white;">Owner Dashboard</a>
+                    {% else %}
+                        <a href="/booking" class="btn btn-outline" style="color: white; border-color: white;">My Bookings</a>
+                    {% endif %}
+                    <a href="/profile" class="btn btn-outline" style="color: white; border-color: white; margin-left: 10px;">Profile</a>
+                    <a href="/logout" class="btn btn-primary" style="margin-left: 10px;">Logout</a>
+                {% else %}
+                    <a href="/login" class="btn btn-primary">Login</a>
+                    <a href="/register" class="btn btn-primary">Register</a>
+                {% endif %}
+            </div>
+            <!-- Mobile Menu Toggle -->
+            <button class="mobile-toggle" id="mobile-toggle" aria-label="Toggle menu">
+                <span class="bar"></span>
+                <span class="bar"></span>
+                <span class="bar"></span>
+            </button>
+        </div>
+    </nav>
+
+    <main class="content">
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="footer">
+        <p>&copy; 2026 Cricza. All rights reserved.</p>
+    </footer>
+
+    <!-- Razorpay Checkout -->
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+    <script>
+        window.onerror = function(msg, url, lineNo, columnNo, error) {
+            alert("JS Error: " + msg + "\nLine: " + lineNo + "\nCol: " + columnNo);
+            return false;
+        };
+    </script>
+    <!-- Custom JS -->
+    <script src="{{ url_for('static', filename='js/main.js') }}?v=2"></script>
+</body>
+</html>

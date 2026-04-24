@@ -1,0 +1,496 @@
+{% extends 'base.html' %}
+
+{% block title %}Cricza - Home{% endblock %}
+
+{% block content %}
+<section class="hero">
+    <div class="hero-content">
+        <h1 class="hero-title">Elevate Your Game</h1>
+        <p class="hero-subtitle">Book premium quality cricket turfs with <br> <span
+                style="font-weight: 900; color: #e0f465;">best-in-class facilities.</span></p>
+        <a href="/booking" class="btn btn-primary btn-large">Book Now</a>
+    </div>
+</section>
+
+<section class="turfs-section">
+    <div class="container">
+        <h2 class="section-title">Available Turfs</h2>
+        
+        <div class="search-wrapper">
+            <input type="text" id="turfSearch" class="search-input" onkeyup="filterTurfs()" placeholder="Search by turf name or pincode...">
+            <span class="search-icon">🔍</span>
+        </div>
+        <div class="turf-grid" id="turf-grid">
+            <!-- Skeleton Loaders (Will be hidden by JS) -->
+            {% for _ in range(3) %}
+            <div class="turf-card skeleton-card">
+                <div class="skeleton-img"></div>
+                <div class="turf-info">
+                    <div class="skeleton-text skeleton-title"></div>
+                    <div class="skeleton-text skeleton-line"></div>
+                    <div class="skeleton-text skeleton-line short"></div>
+                    <div class="skeleton-button"></div>
+                </div>
+            </div>
+            {% endfor %}
+
+            <!-- Actual Content (Hidden initially) -->
+            {% for turf in turfs %}
+            {% set active_cp = turf.active_coupon %}
+            <div class="turf-card actual-content {% if active_cp %}has-coupon{% endif %}" style="display: none;" data-turf-name="{{ turf.name | lower }}" data-turf-pincode="{{ turf.pincode or '' }}">
+                {% if active_cp %}
+                <div class="coupon-badge">OFFER: ₹{{ active_cp.discount_amount }} OFF</div>
+                {% endif %}
+                <div class="turf-img"
+                    style="{% if turf.photo_url %}background-image: url('{{ turf.photo_url }}');{% else %}background-image: url('https://images.unsplash.com/photo-1531415074968-036ba1b575da?auto=format&fit=crop&q=80&w=600');{% endif %}">
+                </div>
+                <div class="turf-info">
+                    <h3>{{ turf.name }}</h3>
+                    {% if active_cp %}
+                    <div class="card-coupon-info">CODE: {{ active_cp.code }}</div>
+                    {% endif %}
+                    <p style="font-weight: 600; color: var(--nav-bg); margin-bottom: 0.5rem; font-size: 0.9rem;">📍 {{ turf.location }}</p>
+                    <p>{{ turf.description }}</p>
+                    <button type="button" class="read-more-btn" onclick="showFullDescription('{{ turf.name | replace("'", "\\'") }}', '{{ turf.description | replace("'", "\\'") | replace("\r", "") | replace("\n", "\\n") }}')">Read more...</button>
+                    {% if turf.pincode %}<p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.5rem; display: block; height: auto; max-height: none; -webkit-line-clamp: unset;">📍 Pincode: {{ turf.pincode }}</p>{% endif %}
+                    <p class="price">₹{{ turf.price_per_hour | round(2) }} / hr</p>
+                    <button type="button" class="btn btn-primary btn-full" onclick="openBookingModal({{ turf.id }}, '{{ turf.name | replace("'", "\\'") }}', {{ turf.price_per_hour }}, {{ turf.open_time }}, {{ turf.close_time }})">Book Slot</button>
+                </div>
+            </div>
+            {% else %}
+            <div class="turf-card actual-content" style="display: none; grid-column: 1 / -1; padding: 2rem; text-align: center; justify-content: center; border: none; box-shadow: none;">
+                <h3 style="color: var(--text-secondary);">No turfs currently hosted. Be the first to partner with us!</h3>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Pagination Controls -->
+        {% if pagination.pages > 1 %}
+        <div class="pagination-wrapper">
+            <div class="pagination">
+                {% if pagination.has_prev %}
+                <a href="{{ url_for('index', page=pagination.prev_num) }}" class="page-link prev">&laquo; Previous</a>
+                {% endif %}
+
+                {% for page_num in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+                    {% if page_num %}
+                        {% if page_num == pagination.page %}
+                        <span class="page-link active">{{ page_num }}</span>
+                        {% else %}
+                        <a href="{{ url_for('index', page=page_num) }}" class="page-link">{{ page_num }}</a>
+                        {% endif %}
+                    {% else %}
+                        <span class="pagination-ellipsis">...</span>
+                    {% endif %}
+                {% endfor %}
+
+                {% if pagination.has_next %}
+                <a href="{{ url_for('index', page=pagination.next_num) }}" class="page-link next">Next &raquo;</a>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</section>
+
+<section id="about" class="about-section {% if current_user.is_authenticated %}member-section{% endif %}" style="background-color: #f9f9f9; border-top: 1px solid var(--border-color);">
+    <div class="container">
+        <div class="about-content-wrapper">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4rem; align-items: center; margin-bottom: 4rem;">
+                <div class="about-text-block">
+                    <h2 class="section-title" style="text-align: left; margin-bottom: 1.5rem;">About Us</h2>
+                    <div style="font-size: 1.1rem; color: var(--text-secondary); line-height: 1.8;">
+                        <p style="margin-bottom: 1.5rem;">
+                            Welcome to <strong>CRICZA</strong>, a modern SaaS-based platform designed to transform the turf
+                            booking experience for both turf owners and customers. Our mission is to connect sports
+                            enthusiasts with quality playing venues through a seamless and reliable digital platform.
+                        </p>
+                        <p>
+                            At CRICZA, turf owners can easily host and manage their turfs, update slot availability, track
+                            bookings, and grow their business with smart management tools. We help owners simplify
+                            operations while increasing their visibility to potential customers.
+                        </p>
+                    </div>
+                </div>
+                <div class="about-image-block"
+                    style="height: 400px; border-radius: 20px; overflow: hidden; box-shadow: var(--shadow-hover); background-image: url('https://images.unsplash.com/photo-1593341646782-e0b495cff86d?q=80&w=600&auto=format&fit=crop'); background-size: cover; background-position: center; background-color: #eee;">
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4rem; align-items: center;">
+                <div class="about-image-block"
+                    style="height: 400px; border-radius: 20px; overflow: hidden; box-shadow: var(--shadow-hover); background-image: url('https://images.unsplash.com/photo-1544919982-b61976f0ba43?q=80&w=600&auto=format&fit=crop'); background-size: cover; background-position: center; background-color: #eee;">
+                </div>
+                <div class="about-text-block">
+                    <div style="font-size: 1.1rem; color: var(--text-secondary); line-height: 1.8;">
+                        <p style="margin-bottom: 1.5rem;">
+                            For players and customers, CRICZA offers a fast and convenient way to discover nearby turfs,
+                            check available time slots, and book games instantly. Whether it’s cricket, football, or other
+                            sports, we make booking simple and hassle-free.
+                        </p>
+                        <p>
+                            CRICZA is more than just a booking platform — we are building a sports community powered by
+                            technology, convenience, and trust. Our goal is to support local turf businesses while making
+                            sports more accessible for everyone.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section id="how-it-works" class="how-it-works-section {% if current_user.is_authenticated %}member-section{% endif %}" style="background-color: #ffffff; padding-top: 1rem; padding-bottom: 3rem;">
+    <div class="container">
+        <h2 class="section-title" style="margin-bottom: 2rem;">How It Works</h2>
+        
+        <div class="workflow-timeline">
+            <!-- Step 1 -->
+            <div class="workflow-item">
+                <div class="workflow-dot">1</div>
+                <div class="workflow-card">
+                    <h3>Create Your Account</h3>
+                    <p>Sign up on CRICZA by creating your account with basic details to start booking your favorite turf easily.</p>
+                </div>
+            </div>
+
+            <!-- Step 2 -->
+            <div class="workflow-item">
+                <div class="workflow-dot">2</div>
+                <div class="workflow-card">
+                    <h3>Find a Turf Near You</h3>
+                    <p>Enter your PIN code to discover turfs near your location. You can also search directly by the turf name if you already know it.</p>
+                </div>
+            </div>
+
+            <!-- Step 3 -->
+            <div class="workflow-item">
+                <div class="workflow-dot">3</div>
+                <div class="workflow-card">
+                    <h3>Select Your Slot</h3>
+                    <p>Choose your preferred date and available time slot for playing.</p>
+                </div>
+            </div>
+
+            <!-- Step 4 -->
+            <div class="workflow-item reveal-step">
+                <div class="workflow-dot">4</div>
+                <div class="workflow-card">
+                    <h3>Make Secure Payment</h3>
+                    <p>Click on the Pay Now button and complete your booking through our secure payment system.</p>
+                </div>
+            </div>
+
+            <!-- Step 5 -->
+            <div class="workflow-item reveal-step">
+                <div class="workflow-dot">5</div>
+                <div class="workflow-card">
+                    <h3>Booking Confirmation</h3>
+                    <p>Once payment is successful, your booking will appear in the Booking Section, and you will also receive a confirmation email from CRICZA.</p>
+                </div>
+            </div>
+
+            <!-- Step 6 -->
+            <div class="workflow-item reveal-step">
+                <div class="workflow-dot">6</div>
+                <div class="workflow-card">
+                    <h3>Visit Turf & Verify Booking</h3>
+                    <p>When you arrive to play, simply show the Order ID provided by CRICZA to the turf owner or manager for verification.</p>
+                </div>
+            </div>
+
+            <!-- Step 7 -->
+            <div class="workflow-item last-item reveal-step">
+                <div class="workflow-dot">7</div>
+                <div class="workflow-card">
+                    <h3>Enjoy Your Game</h3>
+                    <p>After verification, enter the turf and enjoy your game with your team.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section id="how-to-host" class="host-workflow-section {% if current_user.is_authenticated %}member-section{% endif %}">
+    <div class="container">
+        <h2 class="section-title" style="margin-bottom: 1rem;">How to Host Your Turf on CRICZA</h2>
+        <p style="text-align: center; color: var(--text-secondary); margin-bottom: 3rem; max-width: 700px; margin-left: auto; margin-right: auto;">
+            Empower your turf business with CRICZA. Join our growing community of partners and take your management to the next level.
+        </p>
+        
+        <div class="workflow-timeline">
+            <!-- Step 1 -->
+            <div class="workflow-item reveal-step">
+                <div class="workflow-dot">1</div>
+                <div class="workflow-card">
+                    <h3>Become Our Partner</h3>
+                    <p>Visit the Be Our Partner section and choose a plan — Free Trial or ₹500 Premium.</p>
+                </div>
+            </div>
+
+            <!-- Step 2 -->
+            <div class="workflow-item reveal-step">
+                <div class="workflow-dot">2</div>
+                <div class="workflow-card">
+                    <h3>Complete Registration</h3>
+                    <p>Fill in details like turf name, location, contact, pricing, and available facilities.</p>
+                </div>
+            </div>
+
+            <!-- Step 3 -->
+            <div class="workflow-item reveal-step">
+                <div class="workflow-dot">3</div>
+                <div class="workflow-card">
+                    <h3>Make Payment</h3>
+                    <p>For the premium plan, complete the secure payment process to activate your subscription.</p>
+                </div>
+            </div>
+
+            <!-- Step 4 -->
+            <div class="workflow-item reveal-step">
+                <div class="workflow-dot">4</div>
+                <div class="workflow-card">
+                    <h3>Get Login Credentials</h3>
+                    <p>Once registered, receive your Login ID and Password to access your Owner Dashboard.</p>
+                </div>
+            </div>
+
+            <!-- Step 5 -->
+            <div class="workflow-item reveal-step">
+                <div class="workflow-dot">5</div>
+                <div class="workflow-card">
+                    <h3>Access Owner Dashboard</h3>
+                    <p>Log in to your dedicated dashboard to manage your turf business with ease.</p>
+                </div>
+            </div>
+
+            <!-- Step 6 -->
+            <div class="workflow-item reveal-step">
+                <div class="workflow-dot">6</div>
+                <div class="workflow-card">
+                    <h3>Upload Turf Details</h3>
+                    <p>Add images, pricing, slot timings, and facilities to make your listing go live.</p>
+                </div>
+            </div>
+
+            <!-- Step 7 -->
+            <div class="workflow-item reveal-step">
+                <div class="workflow-dot">7</div>
+                <div class="workflow-card">
+                    <h3>Start Receiving Bookings</h3>
+                    <p>Once live, customers can discover and book available slots at your turf instantly.</p>
+                </div>
+            </div>
+
+            <!-- Step 8 -->
+            <div class="workflow-item last-item reveal-step">
+                <div class="workflow-dot">8</div>
+                <div class="workflow-card">
+                    <h3>Grow with CRICZA</h3>
+                    <p>Improve visibility, increase sales, and enhance performance through our platform.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+
+<section id="policies" class="policies-section {% if current_user.is_authenticated %}member-section{% endif %}" style="background-color: #fcfcfc; padding-top: 2rem; padding-bottom: 4rem; border-top: 1px solid var(--border-color);">
+    <div class="container">
+        <h2 class="section-title" style="margin-bottom: 2rem;">CRICZA Policies</h2>
+        
+        <div class="policies-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 3rem;">
+            <!-- Customer Policies -->
+            <div class="policy-group">
+                <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 2rem;">
+                    <span style="font-size: 2rem;">👤</span>
+                    <h3 style="font-size: 1.5rem; color: var(--nav-bg); border-bottom: 3px solid var(--accent-color); padding-bottom: 0.5rem;">Customer Policies</h3>
+                </div>
+                <div class="policy-list-container" style="max-height: 400px; overflow-y: auto; padding-right: 1rem;">
+                    <ul style="list-style: none; padding: 0;">
+                        <li style="margin-bottom: 1rem; display: flex; gap: 0.75rem;"><span style="color: var(--accent-color); font-weight: 900;">•</span> All users must create a valid account with accurate details before making any booking on CRICZA.</li>
+                        <li style="margin-bottom: 1rem; display: flex; gap: 0.75rem;"><span style="color: var(--accent-color); font-weight: 900;">•</span> Full payment must be completed successfully to confirm any turf booking.</li>
+                        <li style="margin-bottom: 1rem; display: flex; gap: 0.75rem;"><span style="color: var(--accent-color); font-weight: 900;">•</span> Customers are requested to reach the turf on time as per the booked slot.</li>
+                        <li style="margin-bottom: 1rem; display: flex; gap: 0.75rem;"><span style="color: var(--accent-color); font-weight: 900;">•</span> If the customer fails to arrive at the turf after booking, CRICZA will not provide any refund.</li>
+                        <li style="margin-bottom: 1rem; display: flex; gap: 0.75rem;"><span style="color: var(--accent-color); font-weight: 900;">•</span> Booking time once started cannot be extended unless approved by the turf owner.</li>
+                        <li style="margin-bottom: 1rem; display: flex; gap: 0.75rem;"><span style="color: var(--accent-color); font-weight: 900;">•</span> Customers must maintain discipline, respect property, and follow turf rules during play.</li>
+                        <li style="margin-bottom: 1rem; display: flex; gap: 0.75rem;"><span style="color: var(--accent-color); font-weight: 900;">•</span> Any damage caused to turf property or equipment may result in additional charges.</li>
+                        <li style="margin-bottom: 1rem; display: flex; gap: 0.75rem;"><span style="color: var(--accent-color); font-weight: 900;">•</span> Customers must carry the Order ID or booking confirmation for verification before entry.</li>
+                        <li style="margin-bottom: 1rem; display: flex; gap: 0.75rem;"><span style="color: var(--accent-color); font-weight: 900;">•</span> Refunds or rescheduling may only apply if the turf owner cancels the booking or due to verified technical issues.</li>
+                        <li style="margin-bottom: 1rem; display: flex; gap: 0.75rem;"><span style="color: var(--accent-color); font-weight: 900;">•</span> CRICZA reserves the right to suspend accounts involved in fraud, misuse, or inappropriate behavior.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Turf Owner Policies -->
+            <div class="policy-group">
+                <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 2rem;">
+                    <span style="font-size: 2rem;">🏟️</span>
+                    <h3 style="font-size: 1.5rem; color: var(--nav-bg); border-bottom: 3px solid var(--accent-color); padding-bottom: 0.5rem;">Turf Owner Policies</h3>
+                </div>
+                <div class="policy-list-container" style="max-height: 400px; overflow-y: auto; padding-right: 1rem;">
+                    <ul style="list-style: none; padding: 0;">
+                        <li style="margin-bottom: 1rem; display: flex; gap: 0.75rem;"><span style="color: var(--accent-color); font-weight: 900;">•</span> Turf owners must provide correct business details, location, pricing, and available slot timings.</li>
+                        <li style="margin-bottom: 1rem; display: flex; gap: 0.75rem;"><span style="color: var(--accent-color); font-weight: 900;">•</span> Owners are responsible for maintaining turf quality, safety, cleanliness, and basic facilities.</li>
+                        <li style="margin-bottom: 1rem; display: flex; gap: 0.75rem;"><span style="color: var(--accent-color); font-weight: 900;">•</span> Owners must honor all confirmed bookings received through the CRICZA platform.</li>
+                        <li style="margin-bottom: 1rem; display: flex; gap: 0.75rem;"><span style="color: var(--accent-color); font-weight: 900;">•</span> Owners should verify the customer booking using the provided Order ID before allowing entry.</li>
+                        <li style="margin-bottom: 1rem; display: flex; gap: 0.75rem;"><span style="color: var(--accent-color); font-weight: 900;">•</span> Owners must update unavailable slots, maintenance closures, or holiday schedules in advance.</li>
+                        <li style="margin-bottom: 1rem; display: flex; gap: 0.75rem;"><span style="color: var(--accent-color); font-weight: 900;">•</span> Any cancellation from the owner side should be updated immediately to avoid inconvenience to customers.</li>
+                        <li style="margin-bottom: 1rem; display: flex; gap: 0.75rem;"><span style="color: var(--accent-color); font-weight: 900;">•</span> Owners must behave professionally with all customers and provide fair service.</li>
+                        <li style="margin-bottom: 1rem; display: flex; gap: 0.75rem;"><span style="color: var(--accent-color); font-weight: 900;">•</span> Owners must not collect extra unauthorized charges outside the booking amount unless clearly mentioned.</li>
+                        <li style="margin-bottom: 1rem; display: flex; gap: 0.75rem;"><span style="color: var(--accent-color); font-weight: 900;">•</span> Repeated customer complaints may lead to suspension or removal from the CRICZA platform.</li>
+                        <li style="margin-bottom: 1rem; display: flex; gap: 0.75rem;"><span style="color: var(--accent-color); font-weight: 900;">•</span> CRICZA acts as a booking platform and reserves the right to modify service policies for smooth operations.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- General Policies -->
+            <div class="policy-group">
+                <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 2rem;">
+                    <span style="font-size: 2rem;">📜</span>
+                    <h3 style="font-size: 1.5rem; color: var(--nav-bg); border-bottom: 3px solid var(--accent-color); padding-bottom: 0.5rem;">General Policies</h3>
+                </div>
+                <div class="policy-list-container" style="max-height: 400px; overflow-y: auto; padding-right: 1rem;">
+                    <ul style="list-style: none; padding: 0;">
+                        <li style="margin-bottom: 1rem; display: flex; gap: 0.75rem;"><span style="color: var(--accent-color); font-weight: 900;">•</span> CRICZA is a digital platform connecting customers and turf owners.</li>
+                        <li style="margin-bottom: 1rem; display: flex; gap: 0.75rem;"><span style="color: var(--accent-color); font-weight: 900;">•</span> Slot availability depends on real-time bookings and owner updates.</li>
+                        <li style="margin-bottom: 1rem; display: flex; gap: 0.75rem;"><span style="color: var(--accent-color); font-weight: 900;">•</span> Prices may vary depending on turf, time slot, and owner settings.</li>
+                        <li style="margin-bottom: 1rem; display: flex; gap: 0.75rem;"><span style="color: var(--accent-color); font-weight: 900;">•</span> Users agree to all policies by using the CRICZA platform.</li>
+                        <li style="margin-bottom: 1rem; display: flex; gap: 0.75rem;"><span style="color: var(--accent-color); font-weight: 900;">•</span> CRICZA reserves the right to update terms and policies anytime without prior notice.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section id="contact" class="contact-section {% if current_user.is_authenticated %}member-section{% endif %}" style="padding-top: 2rem; padding-bottom: 4rem; background: #ffffff; border-top: 1px solid var(--border-color);">
+    <div class="container">
+        <h2 class="section-title" style="margin-bottom: 2rem;">Contact Us</h2>
+        
+        <div class="contact-grid" style="display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 4rem;">
+            <!-- Contact Form -->
+            <div class="contact-form-card" style="background: #fafafa; padding: 3rem; border-radius: 20px; border: 1px solid var(--border-color); box-shadow: var(--shadow-subtle);">
+                <form id="contact-form">
+                    <div id="contact-feedback" style="margin-bottom: 1.5rem; display: none; padding: 1rem; border-radius: 8px; font-weight: 500;"></div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
+                        <div class="form-group">
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Full Name</label>
+                            <input type="text" id="contact-name" name="name" placeholder="John Doe" style="width: 100%; padding: 0.8rem; border: 1px solid var(--border-color); border-radius: 8px;" required>
+                        </div>
+                        <div class="form-group">
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Email Address</label>
+                            <input type="email" id="contact-email" name="email" placeholder="john@example.com" style="width: 100%; padding: 0.8rem; border: 1px solid var(--border-color); border-radius: 8px;" required>
+                        </div>
+                    </div>
+                    <div class="form-group" style="margin-bottom: 1.5rem;">
+                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Subject</label>
+                        <input type="text" id="contact-subject" name="subject" placeholder="How can we help?" style="width: 100%; padding: 0.8rem; border: 1px solid var(--border-color); border-radius: 8px;" required>
+                    </div>
+                    <div class="form-group" style="margin-bottom: 2rem;">
+                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Message</label>
+                        <textarea id="contact-message" name="message" placeholder="Your message here..." rows="5" style="width: 100%; padding: 0.8rem; border: 1px solid var(--border-color); border-radius: 8px; resize: none;" required></textarea>
+                    </div>
+                    <button type="submit" id="contact-submit-btn" class="btn btn-primary" style="padding: 1rem 2.5rem; width: 100%;">Send Message</button>
+                </form>
+            </div>
+
+            <!-- Contact Information -->
+            <div class="contact-info-block">
+                <div style="margin-bottom: 3rem;">
+                    <h3 style="font-size: 1.5rem; margin-bottom: 1.5rem; color: var(--nav-bg);">Get in Touch</h3>
+                    <p style="color: var(--text-secondary); line-height: 1.7;">Have questions about booking or hosting? Our team is here to help you 24/7. Reach out to us through any of these channels.</p>
+                </div>
+
+                <div style="display: grid; gap: 2rem;">
+                    <div style="display: flex; gap: 1.25rem; align-items: flex-start;">
+                        <div style="width: 45px; height: 45px; background: var(--accent-color); border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">📍</div>
+                        <div>
+                            <h4 style="margin-bottom: 0.25rem;">Our Location</h4>
+                            <p style="color: var(--text-secondary); font-size: 0.95rem;">123 Sports Complex, Downtown Avenue, Mumbai, India</p>
+                        </div>
+                    </div>
+                    
+                    <div style="display: flex; gap: 1.25rem; align-items: flex-start;">
+                        <div style="width: 45px; height: 45px; background: var(--accent-color); border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">📞</div>
+                        <div>
+                            <h4 style="margin-bottom: 0.25rem;">Call Us</h4>
+                            <p style="color: var(--text-secondary); font-size: 0.95rem;">+91 98765 43210</p>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; gap: 1.25rem; align-items: flex-start;">
+                        <div style="width: 45px; height: 45px; background: var(--accent-color); border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">✉️</div>
+                        <div>
+                            <h4 style="margin-bottom: 0.25rem;">Email Support</h4>
+                            <p style="color: var(--text-secondary); font-size: 0.95rem;">criczaservices@gmail.com</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="margin-top: 3.5rem;">
+                    <h4 style="margin-bottom: 1.5rem;">Follow Our Community</h4>
+                    <div style="display: flex; gap: 1rem;">
+                        <a href="#" style="width: 40px; height: 40px; background: var(--nav-bg); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center;">f</a>
+                        <a href="#" style="width: 40px; height: 40px; background: var(--nav-bg); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center;">t</a>
+                        <a href="#" style="width: 40px; height: 40px; background: var(--nav-bg); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center;">ig</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Description Modal -->
+<div id="desc-modal" class="modal">
+    <div class="modal-content" style="max-width: 500px;">
+        <span class="close-modal" onclick="closeDescriptionModal()">&times;</span>
+        <h2 id="desc-modal-title" style="margin-bottom: 1rem;">Turf Description</h2>
+        <div id="desc-modal-body" style="line-height: 1.8; color: var(--text-secondary); white-space: pre-line;">
+            <!-- Full description injected here -->
+        </div>
+        <div style="margin-top: 2rem; text-align: right;">
+            <button class="btn btn-primary" onclick="closeDescriptionModal()">Close</button>
+        </div>
+    </div>
+</div>
+
+<!-- Booking Modal -->
+<div id="booking-modal" class="modal">
+    <div class="modal-content">
+        <span class="close-modal" onclick="closeBookingModal()">&times;</span>
+        <h2 id="modal-turf-name">Turf Name</h2>
+        <p class="modal-subtitle">Select a time slot</p>
+        
+        <div class="form-group" style="margin-bottom: 1.5rem;">
+            <label for="booking-date" style="font-weight: 500; font-size: 0.95rem;">Select Date (Next 3 Days)</label>
+            <input type="date" id="booking-date" class="form-control" style="width: 100%; padding: 0.8rem; border: 1px solid var(--border-color); border-radius: 6px; margin-top: 0.5rem; font-family: inherit;">
+        </div>
+        
+        <div class="time-slots-container-wrapper" style="margin-bottom: 1.5rem;">
+            <!-- Categories will be injected here -->
+            <div id="time-slots-container"></div>
+        </div>
+
+        <!-- Coupon Section -->
+        <div class="coupon-section" id="coupon-modal-section">
+            <label style="font-weight: 500; font-size: 0.9rem;">Have a Coupon Code?</label>
+            <div class="coupon-input-container">
+                <input type="text" id="coupon-code-input" class="form-control" placeholder="Enter Code" style="flex: 1; padding: 0.6rem; border: 1px solid var(--border-color); border-radius: 6px; text-transform: uppercase;">
+                <button type="button" class="btn btn-nav" style="background: var(--nav-bg); color: white; padding: 0.6rem 1.2rem; font-size: 0.85rem;" onclick="applyCoupon()">Apply</button>
+            </div>
+            <div id="coupon-feedback"></div>
+        </div>
+        
+        <div id="modal-footer" style="padding-top: 1.5rem; border-top: 1px solid var(--border-color); text-align: right; display: none; margin-top: 1.5rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <div style="text-align: left;">
+                    <span id="selected-slots-count" style="font-size: 0.9rem; color: var(--text-secondary);">0 slots selected</span>
+                </div>
+                <p style="font-size: 1.2rem; margin: 0;">Total: <span style="font-weight: bold; color: #1a7f37; font-size: 1.8rem;">₹<span id="booking-total-price">0</span></span></p>
+            </div>
+            <button class="btn btn-primary btn-full" style="padding: 1rem;" onclick="processMultiBooking()">Proceed to Checkout</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
