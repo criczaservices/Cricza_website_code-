@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% block title %}Owner Dashboard - Cricza{% endblock %}
 {% block content %}
-<div class="container" style="min-height: 60vh;">
+<div class="container-dashboard" style="min-height: 60vh;">
     <h2 class="section-title" style="text-align: left; margin-bottom: 2rem;">Owner Dashboard</h2>
 
     {% with messages = get_flashed_messages() %}
@@ -85,8 +85,8 @@
     </div>
 
     <!-- Host a New Turf Form (Centered and Wider) -->
-    <div style="max-width: 800px; margin: 0 auto 4rem auto;">
-        <div class="pricing-card" style="padding: 2rem; text-align: left; border-color: #e0f465; position: relative; width: 100%;">
+    <div style="max-width: 1200px; margin: 0 auto 4rem auto;">
+        <div class="pricing-card" style="padding: 2.5rem; text-align: left; border-color: #e0f465; position: relative; width: 100%;">
             {% if not current_user.subscription_active %}
             <div style="position: absolute; top:0; left:0; width:100%; height:100%; background: rgba(255,255,255,0.7); z-index: 5; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(2px);">
                 <div style="text-align: center; padding: 1rem;">
@@ -98,14 +98,14 @@
             <h3 style="margin-bottom: 0.5rem;">Host a New Turf</h3>
             <p style="color: var(--text-secondary); font-size: 1rem; margin-bottom: 2rem;">Fill out the details below to list a new turf on the live homepage instantly.</p>
             <form action="/api/turf/add" method="POST">
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem;">
                     <div class="form-group">
                         <label for="name" style="font-size: 0.9rem;">Turf Name</label>
-                        <input type="text" id="name" name="name" required style="width:100%; padding: 0.7rem; border-radius: 6px; border: 1px solid var(--border-color);">
+                        <input type="text" id="name" name="name" required style="width:100%; padding: 0.8rem; border-radius: 8px; border: 1px solid var(--border-color);" placeholder="E.g. Lords Cricket Ground">
                     </div>
                     <div class="form-group">
                         <label for="location" style="font-size: 0.9rem;">Location Details</label>
-                        <input type="text" id="location" name="location" required style="width:100%; padding: 0.7rem; border-radius: 6px; border: 1px solid var(--border-color);">
+                        <input type="text" id="location" name="location" required style="width:100%; padding: 0.8rem; border-radius: 8px; border: 1px solid var(--border-color);" placeholder="E.g. London, UK">
                     </div>
                 </div>
 
@@ -114,18 +114,18 @@
                     <textarea id="description" name="description" rows="3" style="width:100%; padding: 0.7rem; border-radius: 6px; border: 1px solid var(--border-color); font-family: inherit;"></textarea>
                 </div>
 
-                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; margin-bottom: 1.5rem;">
                     <div class="form-group">
                         <label for="pincode" style="font-size: 0.9rem;">Pincode</label>
-                        <input type="text" id="pincode" name="pincode" maxlength="10" style="width:100%; padding: 0.7rem; border-radius: 6px; border: 1px solid var(--border-color);" placeholder="e.g. 411001">
+                        <input type="text" id="pincode" name="pincode" maxlength="10" style="width:100%; padding: 0.8rem; border-radius: 8px; border: 1px solid var(--border-color);" placeholder="e.g. 411001">
                     </div>
                     <div class="form-group">
                         <label for="price_per_hour" style="font-size: 0.9rem;">Price per Hour (₹)</label>
-                        <input type="number" id="price_per_hour" name="price_per_hour" required style="width:100%; padding: 0.7rem; border-radius: 6px; border: 1px solid var(--border-color);">
+                        <input type="number" id="price_per_hour" name="price_per_hour" required style="width:100%; padding: 0.8rem; border-radius: 8px; border: 1px solid var(--border-color);">
                     </div>
                     <div class="form-group">
                         <label for="photo_url" style="font-size: 0.9rem;">Photo URL</label>
-                        <input type="url" id="photo_url" name="photo_url" style="width:100%; padding: 0.7rem; border-radius: 6px; border: 1px solid var(--border-color);" placeholder="https://example.com/image.jpg">
+                        <input type="url" id="photo_url" name="photo_url" style="width:100%; padding: 0.8rem; border-radius: 8px; border: 1px solid var(--border-color);" placeholder="https://example.com/image.jpg">
                     </div>
                 </div>
 
