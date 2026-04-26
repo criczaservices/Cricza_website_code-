@@ -63,6 +63,8 @@ app.config['MAIL_USE_SSL'] = os.getenv('MAIL_USE_SSL', 'False') == 'True'
 app.config['MAIL_USERNAME'] = os.getenv('MAIL_USERNAME')
 app.config['MAIL_PASSWORD'] = os.getenv('MAIL_PASSWORD')
 app.config['MAIL_DEFAULT_SENDER'] = os.getenv('MAIL_DEFAULT_SENDER')
+app.config['REMEMBER_COOKIE_DURATION'] = datetime.timedelta(days=30)
+app.config['PERMANENT_SESSION_LIFETIME'] = datetime.timedelta(days=30)
 
 mail = Mail(app)
 
@@ -259,7 +261,7 @@ def login():
         user = User.query.filter_by(email=email).first()
         
         if user and check_password_hash(user.password_hash, password):
-            login_user(user)
+            login_user(user, remember=True)
             if user.role == 'Admin':
                 return redirect(url_for('admin_dashboard'))
             elif user.role == 'Owner':
@@ -387,7 +389,7 @@ def register():
             explore_url=url_for('index', _external=True)
         )
         
-        login_user(new_user)
+        login_user(new_user, remember=True)
         return redirect(url_for('index'))
             
     return render_template('register.html')
@@ -431,7 +433,7 @@ def register_partner():
         db.session.add(new_owner)
         db.session.commit()
         
-        login_user(new_owner)
+        login_user(new_owner, remember=True)
         
         if float(price) > 0:
             # For paid plans, we let the template trigger the Razorpay modal
@@ -515,7 +517,7 @@ def google_authorize():
     user.profile_pic = picture
     db.session.commit()
 
-    login_user(user)
+    login_user(user, remember=True)
     flash(f"Welcome back, {user.name}!")
     return redirect(url_for('index'))
 

@@ -158,12 +158,28 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('.nav-links a, .nav-auth a, .brand-logo').forEach(link => {
         link.addEventListener('click', (e) => {
             const href = link.getAttribute('href');
-            // Only show loader if it's an internal link and not an anchor
-            if (href && !href.startsWith('#') && !href.includes('logout') && !href.includes('javascript:')) {
+            
+            // Check if it's an anchor on the same page
+            const currentPath = window.location.pathname;
+            const isSamePageAnchor = href && (
+                href.startsWith('#') || 
+                (href.startsWith('/') && href.includes('#') && href.split('#')[0] === currentPath) ||
+                (href.includes('#') && href.split('#')[0] === window.location.href.split('#')[0])
+            );
+
+            // Only show loader if it's an internal link and NOT an anchor/logout
+            if (href && !isSamePageAnchor && !href.includes('logout') && !href.includes('javascript:')) {
                 showLoader('Loading...');
             }
         });
     });
+
+    // Handle back/forward buttons and hash changes
+    window.addEventListener('hashchange', hideLoader);
+    window.addEventListener('popstate', hideLoader);
+
+    // Initial hide once everything is ready
+    hideLoader();
 
     // Header scroll effect
     const navbar = document.querySelector('.navbar');
