@@ -8,11 +8,11 @@
         <h1 class="hero-title">Elevate Your Game</h1>
         <p class="hero-subtitle">Book premium quality cricket turfs with <br> <span
                 style="font-weight: 900; color: #e0f465;">best-in-class facilities.</span></p>
-        <a href="/booking" class="btn btn-primary btn-large">Book Now</a>
+        <a href="#available-turfs" class="btn btn-primary btn-large">Book Now</a>
     </div>
 </section>
 
-<section class="turfs-section">
+<section id="available-turfs" class="turfs-section">
     <div class="container">
         <h2 class="section-title">Available Turfs</h2>
         
@@ -54,7 +54,7 @@
                     <button type="button" class="read-more-btn" onclick="showFullDescription('{{ turf.name | replace("'", "\\'") }}', '{{ turf.description | replace("'", "\\'") | replace("\r", "") | replace("\n", "\\n") }}')">Read more...</button>
                     {% if turf.pincode %}<p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.5rem; display: block; height: auto; max-height: none; -webkit-line-clamp: unset;">📍 Pincode: {{ turf.pincode }}</p>{% endif %}
                     <p class="price">₹{{ turf.price_per_hour | round(2) }} / hr</p>
-                    <button type="button" class="btn btn-primary btn-full" onclick="openBookingModal({{ turf.id }}, '{{ turf.name | replace("'", "\\'") }}', {{ turf.price_per_hour }}, {{ turf.open_time }}, {{ turf.close_time }})">Book Slot</button>
+                    <button type="button" class="btn btn-primary btn-full" onclick="openBookingModal({{ turf.id }}, '{{ turf.name | replace("'", "\\'") }}', {{ turf.price_per_hour }}, {{ turf.open_time }}, {{ turf.close_time }}, {{ turf.night_start_time or 'null' }}, {{ turf.night_price_per_hour or 'null' }})">Book Slot</button>
                 </div>
             </div>
             {% else %}

@@ -57,6 +57,8 @@ class Turf(db.Model):
     photo_url = db.Column(db.Text, nullable=True)
     open_time = db.Column(db.Integer, nullable=False, default=6)
     close_time = db.Column(db.Integer, nullable=False, default=23)
+    night_start_time = db.Column(db.Integer, nullable=True)
+    night_price_per_hour = db.Column(db.Float, nullable=True)
     is_suspended = db.Column(db.Boolean, nullable=False, default=False)
 
     bookings = db.relationship('Booking', backref='turf', lazy=True, cascade="all, delete-orphan")

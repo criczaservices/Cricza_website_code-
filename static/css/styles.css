@@ -22,6 +22,10 @@
     box-sizing: border-box;
 }
 
+html {
+    scroll-behavior: smooth;
+}
+
 body {
     font-family: var(--font-main);
     background-color: var(--bg-color);
@@ -911,6 +915,10 @@ img, video, iframe, table {
 
 /* ===== Small Tablet (576px – 767px) ===== */
 @media (max-width: 767px) {
+
+    body {
+        padding-top: 0;
+    }
 
     /* Navigation — Hamburger Dropdown Menu */
     .navbar {

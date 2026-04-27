@@ -24,6 +24,47 @@ app = Flask(__name__)
 app.secret_key = os.getenv('SECRET_KEY', 'cricza-development-secret-key-2024')
 app.config['SECRET_KEY'] = app.secret_key
 
+@app.errorhandler(404)
+def handle_404(e):
+    if request.path.startswith('/api/'):
+        return jsonify({'success': False, 'message': 'Endpoint not found.'}), 404
+    return render_template('error.html', 
+                           error_code=404, 
+                           error_title='Page Not Found', 
+                           error_message="Oops! The page you're looking for doesn't exist or has been moved."), 404
+
+@app.errorhandler(500)
+def handle_500(e):
+    if request.path.startswith('/api/'):
+        return jsonify({'success': False, 'message': 'Internal server error.'}), 500
+    return render_template('error.html', 
+                           error_code=500, 
+                           error_title='Server Error', 
+                           error_message="Something went wrong on our end. We're working on fixing it."), 500
+
+@app.errorhandler(Exception)
+def handle_exception(e):
+    # Log the full error
+    error_msg = f"[{datetime.datetime.now()}] Generic Error: {str(e)}\n"
+    print(error_msg)
+    with open("app_error.log", "a") as f:
+        f.write(error_msg)
+        
+    if request.path.startswith('/api/'):
+        return jsonify({'success': False, 'message': 'An unexpected error occurred.'}), 500
+        
+    # For database connection errors, show a friendlier message
+    if 'OperationalError' in str(type(e)):
+        return render_template('error.html', 
+                               error_code='DB', 
+                               error_title='Connection issue', 
+                               error_message="We're having trouble connecting to our database. Please refresh in a moment."), 500
+                               
+    return render_template('error.html', 
+                           error_code='!', 
+                           error_title='Something went wrong', 
+                           error_message="We encountered an unexpected error. Please try again."), 500
+
 @app.errorhandler(429)
 def handle_429(e):
     if request.path.startswith('/api/'):
@@ -40,6 +81,10 @@ if app.config['SQLALCHEMY_DATABASE_URI'].startswith("postgres://"):
     app.config['SQLALCHEMY_DATABASE_URI'] = app.config['SQLALCHEMY_DATABASE_URI'].replace("postgres://", "postgresql://", 1)
 
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+    "pool_pre_ping": True,
+    "pool_recycle": 300,
+}
 
 db.init_app(app)
 
@@ -689,6 +734,8 @@ def add_turf():
     photo_url = request.form.get('photo_url')
     open_time = int(request.form.get('open_time', 6))
     close_time = int(request.form.get('close_time', 23))
+    night_start = request.form.get('night_start_time')
+    night_price = request.form.get('night_price_per_hour')
     
     new_turf = Turf(
         owner_id=current_user.id,
@@ -699,7 +746,9 @@ def add_turf():
         price_per_hour=price,
         photo_url=photo_url,
         open_time=open_time,
-        close_time=close_time
+        close_time=close_time,
+        night_start_time=int(night_start) if night_start else None,
+        night_price_per_hour=float(night_price) if night_price else None
     )
     db.session.add(new_turf)
     db.session.commit()
@@ -725,6 +774,11 @@ def edit_turf(turf_id):
     turf.photo_url = request.form.get('photo_url', turf.photo_url)
     turf.open_time = int(request.form.get('open_time', turf.open_time))
     turf.close_time = int(request.form.get('close_time', turf.close_time))
+    
+    night_start = request.form.get('night_start_time')
+    night_price = request.form.get('night_price_per_hour')
+    turf.night_start_time = int(night_start) if night_start else None
+    turf.night_price_per_hour = float(night_price) if night_price else None
     
     db.session.commit()
     flash(f'Turf "{turf.name}" updated successfully!')
@@ -1029,8 +1083,16 @@ def create_booking_order():
             return jsonify({'success': False, 'message': f'Slots already booked or payment in progress: {", ".join(conflicts)}'}), 409
         
         # Recalculate cost on server to prevent manipulation or double-discount
-        num_slots = len(requested_slots)
-        base_cost = turf.price_per_hour * num_slots
+        base_cost = 0
+        for s in requested_slots:
+            try:
+                slot_hour = int(s.split(':')[0])
+                if turf.night_start_time is not None and turf.night_price_per_hour is not None and slot_hour >= turf.night_start_time:
+                    base_cost += turf.night_price_per_hour
+                else:
+                    base_cost += turf.price_per_hour
+            except:
+                base_cost += turf.price_per_hour
         
         final_cost = base_cost
         applied_coupon_code = None
@@ -1119,10 +1181,35 @@ def book_manual():
         offline_phone = data.get('offline_phone')
         coupon_code = data.get('coupon_code')
         
+        if not offline_name or not offline_email or not offline_phone:
+             return jsonify({'success': False, 'message': 'Customer Name, Email, and Phone are required for manual booking.'}), 400
+
         turf = db.session.get(Turf, turf_id)
         if not turf or turf.owner_id != current_user.id:
              return jsonify({'success': False, 'message': 'Turf not found or unauthorized.'}), 404
              
+        # Check for conflicts (Double booking prevention)
+        requested_slots = [s.strip() for s in time_slot.split(',')]
+        now = datetime.datetime.utcnow()
+        existing_bookings = Booking.query.filter(
+            Booking.turf_id == turf.id,
+            Booking.date == date_str,
+            (
+                (Booking.payment_status == 'Success') |
+                (
+                    (Booking.payment_status == 'Pending') &
+                    (Booking.created_at > now - datetime.timedelta(minutes=7))
+                )
+            )
+        ).all()
+        already_booked = []
+        for b in existing_bookings:
+            already_booked.extend([s.strip() for s in b.time_slot.split(',')])
+        
+        conflicts = [s for s in requested_slots if s in already_booked]
+        if conflicts:
+            return jsonify({'success': False, 'message': f'Slots already booked: {", ".join(conflicts)}'}), 409
+
         # Coupon check for manual booking
         applied_coupon_code = None
         if coupon_code:
@@ -1139,7 +1226,6 @@ def book_manual():
                 coupon.used_count += 1 # Instant success for manual
 
         # Past Slot Check for manual booking
-        requested_slots = [s.strip() for s in time_slot.split(',')]
         ist_now = datetime.datetime.utcnow() + datetime.timedelta(hours=5, minutes=30)
         today_str = ist_now.strftime('%Y-%m-%d')
         if date_str == today_str:
@@ -1151,13 +1237,28 @@ def book_manual():
                         return jsonify({'success': False, 'message': f'Slot {s} has already passed.'}), 400
                 except: continue
 
+        # Dynamic cost calculation for manual booking
+        calculated_cost = 0
+        for s in requested_slots:
+            try:
+                slot_hour = int(s.split(':')[0])
+                if turf.night_start_time is not None and turf.night_price_per_hour is not None and slot_hour >= turf.night_start_time:
+                    calculated_cost += turf.night_price_per_hour
+                else:
+                    calculated_cost += turf.price_per_hour
+            except:
+                calculated_cost += turf.price_per_hour
+        
+        # If the owner provided a custom cost, we respect it, but if not, we use calculated
+        final_booking_cost = cost if cost > 0 else calculated_cost
+
         # Create Success Booking directly since it's manual offline cash
         booking = Booking(
             customer_id=current_user.id, # Marked as owner's own booking
             turf_id=turf.id,
             date=date_str,
             time_slot=time_slot,
-            cost=cost,
+            cost=final_booking_cost,
             razorpay_order_id='MANUAL',
             payment_status='Success',
             payment_to='Offline',
@@ -1169,7 +1270,7 @@ def book_manual():
         db.session.add(booking)
         db.session.commit()
         
-        # Send Booking Confirmation Email if email provided
+        # Send Booking Confirmation Email to CUSTOMER if email provided
         if offline_email:
             send_email(
                 subject="Booking Confirmed - Cricza",
@@ -1186,6 +1287,23 @@ def book_manual():
                 owner_phone=current_user.phone or 'N/A',
                 dashboard_url=url_for('index', _external=True)
             )
+
+        # Send Booking Notification Email to OWNER
+        send_email(
+            subject=f"New Manual Booking: {booking.id} - {turf.name}",
+            recipient=current_user.email,
+            template="emails/owner_booking_notification.html",
+            customer_name=offline_name,
+            customer_email=offline_email,
+            customer_phone=offline_phone,
+            booking_id=booking.id,
+            turf_name=turf.name,
+            date=booking.date,
+            time_slot=booking.time_slot,
+            location=turf.location,
+            amount=booking.cost,
+            dashboard_url=url_for('owner_dashboard', _external=True)
+        )
         
         return jsonify({'success': True, 'message': 'Manual booking recorded successfully!'})
     except Exception as e:

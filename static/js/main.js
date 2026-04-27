@@ -240,7 +240,9 @@ let currentTurfName = null;
 let currentBaseCost = 0;
 let currentOpenTime = 0;
 let currentCloseTime = 0;
-let selectedSlots = [];
+let currentNightStart = null;
+let currentNightPrice = null;
+let selectedSlots = []; // Stores { time: "9:00 - 10:00", price: 50 }
 let appliedCoupon = null;
 let appliedDiscount = 0;
 
@@ -248,7 +250,7 @@ let appliedDiscount = 0;
 //   BOOKING MODAL FUNCTIONS
 // =============================================
 
-function openBookingModal(turfId, turfName, baseCost, openTime, closeTime) {
+function openBookingModal(turfId, turfName, baseCost, openTime, closeTime, nightStart = null, nightPrice = null) {
     // Lazy DOM lookup — works whether modal is on index or dashboard
     const bookingModal = document.getElementById('booking-modal');
     const modalTurfName = document.getElementById('modal-turf-name');
@@ -266,6 +268,8 @@ function openBookingModal(turfId, turfName, baseCost, openTime, closeTime) {
     currentBaseCost = parseFloat(baseCost);
     currentOpenTime = parseInt(openTime);
     currentCloseTime = parseInt(closeTime);
+    currentNightStart = nightStart !== null && nightStart !== 'null' ? parseInt(nightStart) : null;
+    currentNightPrice = nightPrice !== null && nightPrice !== 'null' ? parseFloat(nightPrice) : null;
     selectedSlots = [];
     appliedCoupon = null;
     appliedDiscount = 0;
@@ -387,11 +391,18 @@ function buildSlots() {
                             <div class="booked-label">Booked</div>
                         `;
                     } else {
+                        const hour = parseInt(slot.timeString.split(':')[0]);
+                        let slotPrice = currentBaseCost;
+                        if (currentNightStart !== null && currentNightPrice !== null && hour >= currentNightStart) {
+                            slotPrice = currentNightPrice;
+                        }
+
                         slotCard.setAttribute('data-slot', slot.timeString);
-                        slotCard.addEventListener('click', function() { toggleSlot(slot.timeString, this); });
+                        slotCard.setAttribute('data-price', slotPrice);
+                        slotCard.addEventListener('click', function() { toggleSlot(slot.timeString, slotPrice, this); });
                         slotCard.innerHTML = `
                             <div class="slot-time">${slot.timeString}</div>
-                            <div class="slot-price">₹${currentBaseCost}</div>
+                            <div class="slot-price">₹${slotPrice}</div>
                         `;
                     }
                     grid.appendChild(slotCard);
@@ -402,13 +413,13 @@ function buildSlots() {
         .catch(err => console.error('Error fetching slots:', err));
 }
 
-function toggleSlot(timeString, element) {
-    const index = selectedSlots.indexOf(timeString);
+function toggleSlot(timeString, price, element) {
+    const index = selectedSlots.findIndex(s => s.time === timeString);
     if (index > -1) {
         selectedSlots.splice(index, 1);
         element.classList.remove('selected');
     } else {
-        selectedSlots.push(timeString);
+        selectedSlots.push({ time: timeString, price: price });
         element.classList.add('selected');
     }
     updateTotalPrice();
@@ -419,7 +430,7 @@ function updateTotalPrice() {
     const countEl = document.getElementById('selected-slots-count');
     
     if (totalPriceEl) {
-        let total = selectedSlots.length * currentBaseCost;
+        let total = selectedSlots.reduce((sum, slot) => sum + slot.price, 0);
         if (appliedDiscount > 0) {
             total = Math.max(0, total - appliedDiscount);
         }
@@ -521,11 +532,20 @@ function processMultiBooking() {
 
     const date = bookingDate.value;
     const totalCost = parseFloat(document.getElementById('booking-total-price').innerText);
-    const timeSlotsString = selectedSlots.join(', ');
+    const timeSlotsString = selectedSlots.map(s => s.time).join(', ');
     const isOwnerDashboard = window.location.pathname.includes('/dashboard/owner');
 
     // 1. Handle Manual Booking (Owner Dashboard)
     if (isOwnerDashboard) {
+        const offName = document.getElementById('offline-name')?.value;
+        const offEmail = document.getElementById('offline-email')?.value;
+        const offPhone = document.getElementById('offline-phone')?.value;
+
+        if (!offName || !offEmail || !offPhone) {
+            alert('Customer Name, Email, and Phone Number are mandatory for manual bookings.');
+            return;
+        }
+
         showLoader('Processing...');
         fetch('/api/book_manual', {
             method: 'POST',
@@ -535,9 +555,9 @@ function processMultiBooking() {
                 time_slot: timeSlotsString,
                 cost: totalCost,
                 date: date,
-                offline_name: document.getElementById('offline-name') ? document.getElementById('offline-name').value : null,
-                offline_email: document.getElementById('offline-email') ? document.getElementById('offline-email').value : null,
-                offline_phone: document.getElementById('offline-phone') ? document.getElementById('offline-phone').value : null,
+                offline_name: offName,
+                offline_email: offEmail,
+                offline_phone: offPhone,
                 coupon_code: appliedCoupon
             })
         })

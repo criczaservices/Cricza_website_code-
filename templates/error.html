@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+
+{% block title %}Cricza - Error{% endblock %}
+
+{% block content %}
+<section style="min-height: 80vh; display: flex; align-items: center; justify-content: center; padding: 2rem; background: #f9f9f9;">
+    <div style="max-width: 600px; width: 100%; text-align: center; padding: 3rem; background: white; border-radius: 20px; box-shadow: var(--shadow-hover); border: 1px solid var(--border-color);">
+        <div style="font-size: 5rem; font-weight: 900; color: #000; margin-bottom: 1rem; line-height: 1;">
+            {{ error_code if error_code else '!' }}
+        </div>
+        <h1 style="font-size: 2rem; margin-bottom: 1rem; color: #1a1a1a;">{{ error_title if error_title else 'Something went wrong' }}</h1>
+        <p style="color: #666; margin-bottom: 2rem; font-size: 1.1rem; line-height: 1.6;">
+            {{ error_message if error_message else 'We encountered an unexpected error. Please try again or go back to the homepage.' }}
+        </p>
+        <div style="display: flex; gap: 1rem; justify-content: center;">
+            <a href="/" class="btn btn-primary" style="padding: 0.8rem 2rem;">Back to Home</a>
+            <button onclick="window.history.back()" class="btn btn-outline" style="padding: 0.8rem 2rem; border-color: #000; color: #000;">Go Back</button>
+        </div>
+        
+        {% if debug_info %}
+        <div style="margin-top: 3rem; text-align: left; background: #f4f4f4; padding: 1rem; border-radius: 8px; font-family: monospace; font-size: 0.8rem; overflow-x: auto;">
+            <strong>Debug info:</strong><br>
+            {{ debug_info }}
+        </div>
+        {% endif %}
+    </div>
+</section>
+{% endblock %}

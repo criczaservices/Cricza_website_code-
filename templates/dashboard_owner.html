@@ -104,8 +104,8 @@
                         <input type="text" id="name" name="name" required style="width:100%; padding: 0.8rem; border-radius: 8px; border: 1px solid var(--border-color);" placeholder="E.g. Lords Cricket Ground">
                     </div>
                     <div class="form-group">
-                        <label for="location" style="font-size: 0.9rem;">Location Details</label>
-                        <input type="text" id="location" name="location" required style="width:100%; padding: 0.8rem; border-radius: 8px; border: 1px solid var(--border-color);" placeholder="E.g. London, UK">
+                        <label for="location" style="font-size: 0.9rem;">Google Maps Link</label>
+                        <input type="text" id="location" name="location" required style="width:100%; padding: 0.8rem; border-radius: 8px; border: 1px solid var(--border-color);" placeholder="E.g. https://maps.google.com/...">
                     </div>
                 </div>
 
@@ -129,14 +129,22 @@
                     </div>
                 </div>
 
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2rem;">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
                     <div class="form-group">
                         <label for="open_time" style="font-size: 0.9rem;">Open Time (0-23)</label>
-                        <input type="number" id="open_time" name="open_time" min="0" max="23" required style="width:100%; padding: 0.7rem; border-radius: 6px; border: 1px solid var(--border-color);">
+                        <input type="number" id="open_time" name="open_time" min="0" max="23" value="6" required style="width:100%; padding: 0.7rem; border-radius: 6px; border: 1px solid var(--border-color);">
                     </div>
                     <div class="form-group">
                         <label for="close_time" style="font-size: 0.9rem;">Close Time (1-24)</label>
-                        <input type="number" id="close_time" name="close_time" min="1" max="24" required style="width:100%; padding: 0.7rem; border-radius: 6px; border: 1px solid var(--border-color);">
+                        <input type="number" id="close_time" name="close_time" min="1" max="24" value="23" required style="width:100%; padding: 0.7rem; border-radius: 6px; border: 1px solid var(--border-color);">
+                    </div>
+                    <div class="form-group">
+                        <label for="night_start_time" style="font-size: 0.9rem;">Night Start (e.g. 18)</label>
+                        <input type="number" id="night_start_time" name="night_start_time" min="0" max="23" style="width:100%; padding: 0.7rem; border-radius: 6px; border: 1px solid var(--border-color);" placeholder="Optional">
+                    </div>
+                    <div class="form-group">
+                        <label for="night_price_per_hour" style="font-size: 0.9rem;">Night Price (₹)</label>
+                        <input type="number" id="night_price_per_hour" name="night_price_per_hour" step="0.01" style="width:100%; padding: 0.7rem; border-radius: 6px; border: 1px solid var(--border-color);" placeholder="Optional">
                     </div>
                 </div>
                 <button class="btn btn-primary btn-full" type="submit" style="background: #e0f465; color: black; border: none; font-weight: bold; padding: 1rem;">Upload Turf</button>
@@ -226,7 +234,7 @@
                                     <input type="text" name="name" value="{{ turf.name }}" required style="width:100%; padding: 0.4rem; border-radius: 4px; border: 1px solid var(--border-color); font-size: 0.85rem;">
                                 </div>
                                 <div class="form-group" style="margin-bottom: 0.5rem;">
-                                    <label style="font-size: 0.8rem;">Location</label>
+                                    <label style="font-size: 0.8rem;">Google Maps Link</label>
                                     <input type="text" name="location" value="{{ turf.location }}" required style="width:100%; padding: 0.4rem; border-radius: 4px; border: 1px solid var(--border-color); font-size: 0.85rem;">
                                 </div>
                                 <div class="form-group" style="margin-bottom: 0.5rem;">
@@ -252,6 +260,14 @@
                                 <div class="form-group" style="margin-bottom: 0.5rem;">
                                     <label style="font-size: 0.8rem;">Close Time</label>
                                     <input type="number" name="close_time" value="{{ turf.close_time }}" min="1" max="24" style="width:100%; padding: 0.4rem; border-radius: 4px; border: 1px solid var(--border-color); font-size: 0.85rem;">
+                                </div>
+                                <div class="form-group" style="margin-bottom: 0.5rem;">
+                                    <label style="font-size: 0.8rem;">Night Start</label>
+                                    <input type="number" name="night_start_time" value="{{ turf.night_start_time or '' }}" min="0" max="23" style="width:100%; padding: 0.4rem; border-radius: 4px; border: 1px solid var(--border-color); font-size: 0.85rem;">
+                                </div>
+                                <div class="form-group" style="margin-bottom: 0.5rem;">
+                                    <label style="font-size: 0.8rem;">Night Price (₹)</label>
+                                    <input type="number" name="night_price_per_hour" value="{{ turf.night_price_per_hour or '' }}" step="0.01" style="width:100%; padding: 0.4rem; border-radius: 4px; border: 1px solid var(--border-color); font-size: 0.85rem;">
                                 </div>
                             </div>
                             <button type="submit" class="btn btn-primary" style="margin-top: 0.75rem; padding: 0.5rem 1.5rem; font-size: 0.85rem;">Save Changes</button>
@@ -410,7 +426,9 @@
                                     data-name="{{ turf.name }}" 
                                     data-price="{{ turf.price_per_hour }}"
                                     data-open="{{ turf.open_time }}"
-                                    data-close="{{ turf.close_time }}">
+                                    data-close="{{ turf.close_time }}"
+                                    data-night-start="{{ turf.night_start_time or '' }}"
+                                    data-night-price="{{ turf.night_price_per_hour or '' }}">
                                 {{ turf.name }}
                             </option>
                             {% endfor %}
@@ -532,8 +550,11 @@ function openManualBooking() {
     const open = option.getAttribute('data-open');
     const close = option.getAttribute('data-close');
     
+    const nStart = option.getAttribute('data-night-start');
+    const nPrice = option.getAttribute('data-night-price');
+    
     // Call the global function in main.js
-    openBookingModal(id, name, price, open, close);
+    openBookingModal(id, name, price, open, close, nStart, nPrice);
     
     // Change the button text in the modal for clarity
     setTimeout(() => {
