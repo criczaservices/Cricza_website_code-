@@ -181,15 +181,41 @@ document.addEventListener('DOMContentLoaded', () => {
     // Initial hide once everything is ready
     hideLoader();
 
-    // Header scroll effect
+    // Header & Scroll to Top effect
     const navbar = document.querySelector('.navbar');
-    if (navbar) {
-        window.addEventListener('scroll', () => {
+    const scrollTopBtn = document.getElementById('scroll-to-top');
+
+    window.addEventListener('scroll', () => {
+        // Navbar effect
+        if (navbar) {
             if (window.scrollY > 50) {
                 navbar.classList.add('scrolled');
             } else {
                 navbar.classList.remove('scrolled');
             }
+        }
+
+        // Scroll to Top visibility
+        if (scrollTopBtn) {
+            const bookingModal = document.getElementById('booking-modal');
+            const descModal = document.getElementById('desc-modal');
+            const isModalOpen = (bookingModal && bookingModal.classList.contains('show')) || 
+                               (descModal && descModal.classList.contains('show'));
+            
+            if (window.scrollY > 300 && !isModalOpen) {
+                scrollTopBtn.classList.add('show');
+            } else {
+                scrollTopBtn.classList.remove('show');
+            }
+        }
+    });
+
+    if (scrollTopBtn) {
+        scrollTopBtn.addEventListener('click', () => {
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
         });
     }
 });
@@ -313,6 +339,10 @@ function openBookingModal(turfId, turfName, baseCost, openTime, closeTime, night
         if (offEmail) offEmail.value = '';
         if (offPhone) offPhone.value = '';
     }
+
+    // Hide scroll to top button if open
+    const scrollTopBtn = document.getElementById('scroll-to-top');
+    if (scrollTopBtn) scrollTopBtn.classList.remove('show');
 
     // Show modal
     bookingModal.style.display = 'flex';
@@ -508,6 +538,10 @@ function showFullDescription(turfName, description) {
 
     title.textContent = turfName;
     body.textContent = description;
+
+    // Hide scroll to top button if open
+    const scrollTopBtn = document.getElementById('scroll-to-top');
+    if (scrollTopBtn) scrollTopBtn.classList.remove('show');
 
     modal.style.display = 'flex';
     setTimeout(() => { modal.classList.add('show'); }, 10);

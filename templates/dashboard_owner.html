@@ -85,7 +85,7 @@
     </div>
 
     <!-- Host a New Turf Form (Centered and Wider) -->
-    <div style="max-width: 1200px; margin: 0 auto 4rem auto;">
+    <div style="max-width: 1200px; margin: 0 auto 2.5rem auto;">
         <div class="pricing-card" style="padding: 2.5rem; text-align: left; border-color: #e0f465; position: relative; width: 100%;">
             {% if not current_user.subscription_active %}
             <div style="position: absolute; top:0; left:0; width:100%; height:100%; background: rgba(255,255,255,0.7); z-index: 5; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(2px);">
@@ -153,7 +153,7 @@
     </div>
 
     <!-- Dashboard Content -->
-    <div style="display: flex; flex-direction: column; gap: 4rem;">
+    <div style="display: flex; flex-direction: column; gap: 2.5rem;">
         <!-- My Hosted Turfs -->
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
                 <h3>My Hosted Turfs</h3>
@@ -310,16 +310,16 @@
             {% endif %}
             
             <!-- Recent Bookings Table -->
-            <div class="section-header-row" style="margin-top: 3rem; margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
+            <div class="section-header-row" style="margin-top: 2rem; margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
                 <h3>Recent Bookings</h3>
-                <div style="position: relative; width: 100%; max-width: 300px;">
-                    <input type="text" id="orderSearch" onkeyup="filterOrders()" placeholder="Verify Order ID..." style="width: 100%; padding: 0.6rem 1rem; border-radius: 8px; border: 1px solid var(--border-color); outline: none;">
+                <div style="position: relative; width: 100%; max-width: 350px;">
+                    <input type="text" id="orderSearch" onkeyup="filterOrders()" placeholder="Search Order ID, Name, Email..." style="width: 100%; padding: 0.6rem 1rem; border-radius: 8px; border: 1px solid var(--border-color); outline: none;">
                 </div>
             </div>
             
             <div class="table-container" style="background: white; border-radius: 12px; border: 1px solid var(--border-color); overflow: hidden; margin-top: 1rem;">
                 {% if recent_bookings %}
-                <div style="overflow-x: auto; max-height: 500px;">
+                <div style="overflow-x: auto; max-height: 500px;" class="custom-scroll">
                     <table style="width: 100%; border-collapse: collapse; table-layout: fixed; min-width: 950px;">
                         <thead style="position: sticky; top: 0; z-index: 10; background: #000; color: white;">
                             <tr>
@@ -341,6 +341,7 @@
                                     {% if item.is_manual %}
                                     <span style="font-size: 0.6rem; color: #f39c12; font-weight: 900; background: #fff9eb; padding: 2px 4px; border-radius: 4px;">OFFLINE</span>
                                     {% endif %}
+                                    <div style="display:none;" class="search-email">{{ item.customer_email }}</div>
                                 </td>
                                 <td style="padding: 1rem; width: 140px; color: #555; font-size: 0.9rem;">{{ item.turf_name }}</td>
                                 <td style="padding: 1rem; width: 160px; font-size: 0.8rem; color: #888;">{{ item.created_at }}</td>
@@ -361,44 +362,60 @@
             </div>
             
             <!-- Withdrawal History -->
-            <div style="margin-top: 3rem;">
+            <div style="margin-top: 2rem;">
                 <div class="section-header-row" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.75rem;">
                     <h3>Withdrawal History</h3>
                     <div style="position: relative; width: 100%; max-width: 250px;">
                         <input type="text" id="withdrawalSearch" onkeyup="filterWithdrawals()" placeholder="Search by date..." style="width: 100%; padding: 0.6rem 1rem; border-radius: 8px; border: 1px solid var(--border-color); outline: none; font-size: 0.9rem;">
                     </div>
                 </div>
-                <div class="table-container">
+                <div class="table-container" style="border: 1px solid var(--border-color); border-radius: 12px; overflow: hidden; background: white;">
                     {% if withdrawals %}
-                    <table style="width: 100%; border-collapse: collapse;">
-                        <thead style="background: #f6f8fa;">
-                            <tr>
-                                <th style="padding: 0.8rem 1rem; text-align: left; font-size: 0.9rem;">Date</th>
-                                <th style="padding: 0.8rem 1rem; text-align: left; font-size: 0.9rem;">Amount</th>
-                                <th style="padding: 0.8rem 1rem; text-align: left; font-size: 0.9rem;">Status</th>
-                                <th style="padding: 0.8rem 1rem; text-align: left; font-size: 0.9rem;">Paid On</th>
-                            </tr>
-                        </thead>
-                    </table>
-                    <div style="max-height: 280px; overflow-y: auto;">
-                        <table style="width: 100%; border-collapse: collapse;">
-                            <tbody>
-                                {% for wd in withdrawals %}
-                                <tr style="border-bottom: 1px solid var(--border-color);" class="wd-row">
-                                    <td style="padding: 0.8rem 1rem; font-size: 0.9rem;">{{ wd.created_at.strftime('%d %b %Y') }}</td>
-                                    <td style="padding: 0.8rem 1rem; font-size: 0.9rem; font-weight: bold;">₹{{ wd.amount }}</td>
-                                    <td style="padding: 0.8rem 1rem;">
-                                        {% if wd.status == 'Paid' %}
-                                        <span style="background: #dafbe1; color: #1a7f37; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.8rem; font-weight: 600;">Paid</span>
-                                        {% else %}
-                                        <span style="background: #fff8c5; color: #9a6700; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.8rem; font-weight: 600;">Pending</span>
-                                        {% endif %}
-                                    </td>
-                                    <td style="padding: 0.8rem 1rem; font-size: 0.85rem; color: var(--text-secondary);">{{ wd.paid_at.strftime('%d %b %Y') if wd.paid_at else '—' }}</td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
+                    <div style="overflow-x: auto;" class="custom-scroll">
+                        <div style="min-width: 500px;">
+                            <table style="width: 100%; border-collapse: collapse; table-layout: fixed;">
+                                <colgroup>
+                                    <col style="width: 25%;">
+                                    <col style="width: 25%;">
+                                    <col style="width: 25%;">
+                                    <col style="width: 25%;">
+                                </colgroup>
+                                <thead style="background: #f6f8fa;">
+                                    <tr>
+                                        <th style="padding: 0.8rem 1rem; text-align: left; font-size: 0.9rem;">Date</th>
+                                        <th style="padding: 0.8rem 1rem; text-align: left; font-size: 0.9rem;">Amount</th>
+                                        <th style="padding: 0.8rem 1rem; text-align: left; font-size: 0.9rem;">Status</th>
+                                        <th style="padding: 0.8rem 1rem; text-align: left; font-size: 0.9rem;">Paid On</th>
+                                    </tr>
+                                </thead>
+                            </table>
+                            <div style="max-height: 280px; overflow-y: auto;" class="custom-scroll">
+                                <table style="width: 100%; border-collapse: collapse; table-layout: fixed;">
+                                    <colgroup>
+                                        <col style="width: 25%;">
+                                        <col style="width: 25%;">
+                                        <col style="width: 25%;">
+                                        <col style="width: 25%;">
+                                    </colgroup>
+                                    <tbody>
+                                        {% for wd in withdrawals %}
+                                        <tr style="border-bottom: 1px solid var(--border-color);" class="wd-row hover-row">
+                                            <td style="padding: 0.8rem 1rem; font-size: 0.9rem;">{{ wd.created_at.strftime('%d %b %Y') }}</td>
+                                            <td style="padding: 0.8rem 1rem; font-size: 0.9rem; font-weight: bold;">₹{{ wd.amount }}</td>
+                                            <td style="padding: 0.8rem 1rem;">
+                                                {% if wd.status == 'Paid' %}
+                                                <span style="background: #dafbe1; color: #1a7f37; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.8rem; font-weight: 600;">Paid</span>
+                                                {% else %}
+                                                <span style="background: #fff8c5; color: #9a6700; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.8rem; font-weight: 600;">Pending</span>
+                                                {% endif %}
+                                            </td>
+                                            <td style="padding: 0.8rem 1rem; font-size: 0.85rem; color: var(--text-secondary);">{{ wd.paid_at.strftime('%d %b %Y') if wd.paid_at else '—' }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
                     </div>
                     {% else %}
                     <div style="padding: 2rem; text-align: center;">
@@ -409,7 +426,7 @@
             </div>
 
             <!-- Bottom Control Grid -->
-            <div class="resp-grid-2" style="margin-top: 3rem; gap: 2rem;">
+            <div class="resp-grid-2" style="margin-top: 2.5rem; gap: 2rem;">
                 <!-- Manual Booking Section -->
                 <div class="pricing-card" style="padding: 1.5rem; text-align: left; background: #fdfdfd; border-style: dashed; border-width: 2px; position: relative; margin: 0;">
                     {% if not current_user.subscription_active %}
@@ -506,9 +523,14 @@ function filterOrders() {
 
     for (let i = 0; i < rows.length; i++) {
         const orderIdCell = rows[i].getElementsByTagName("td")[0];
-        if (orderIdCell) {
-            const txtValue = orderIdCell.textContent || orderIdCell.innerText;
-            if (txtValue.toUpperCase().indexOf(filter) > -1) {
+        const customerCell = rows[i].getElementsByTagName("td")[1];
+        
+        if (orderIdCell && customerCell) {
+            const orderIdText = orderIdCell.textContent || orderIdCell.innerText;
+            const customerText = customerCell.textContent || customerCell.innerText;
+            
+            if (orderIdText.toUpperCase().indexOf(filter) > -1 || 
+                customerText.toUpperCase().indexOf(filter) > -1) {
                 rows[i].style.display = "";
             } else {
                 rows[i].style.display = "none";
@@ -658,10 +680,10 @@ function showBookingDetails(dataStr) {
                 </div>
             </div>
             
-            <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #f9f9f9; padding-bottom: 0.75rem;">
-                <div style="display: flex; flex-direction: column;">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 1rem; border-bottom: 1px solid #f9f9f9; padding-bottom: 0.75rem;">
+                <div style="display: flex; flex-direction: column; overflow: hidden;">
                     <span style="font-size: 0.75rem; color: #888; text-transform: uppercase;">Contact Email</span>
-                    <span style="font-weight: 600;">${data.customer_email || 'N/A'}</span>
+                    <span style="font-weight: 600; word-break: break-all;">${data.customer_email || 'N/A'}</span>
                 </div>
                 <div style="display: flex; flex-direction: column;">
                     <span style="font-size: 0.75rem; color: #888; text-transform: uppercase;">Contact Phone</span>
@@ -676,7 +698,7 @@ function showBookingDetails(dataStr) {
                 </div>
             </div>
             
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 1rem; border-bottom: 1px solid #f9f9f9; padding-bottom: 0.75rem;">
                 <div style="display: flex; flex-direction: column;">
                     <span style="font-size: 0.75rem; color: #888; text-transform: uppercase;">Playing Date</span>
                     <span style="font-weight: 600;">${data.date}</span>
@@ -687,9 +709,9 @@ function showBookingDetails(dataStr) {
                 </div>
             </div>
             
-            <div style="display: flex; flex-direction: column;">
+            <div style="display: flex; flex-direction: column; border-bottom: 1px solid #f9f9f9; padding-bottom: 0.75rem;">
                 <span style="font-size: 0.75rem; color: #888; text-transform: uppercase;">Time Slot(s)</span>
-                <span style="font-weight: 600; background: #f0f0f0; padding: 0.5rem; border-radius: 4px;">${data.time_slot}</span>
+                <span style="font-weight: 600; background: #f0f0f0; padding: 0.5rem; border-radius: 4px; display: inline-block; margin-top: 0.25rem;">${data.time_slot}</span>
             </div>
             
             <div style="display: flex; flex-direction: column;">
@@ -716,6 +738,22 @@ function closeDetailModal() {
 .hover-row:hover {
     background-color: #fafafa !important;
 }
+.custom-scroll::-webkit-scrollbar {
+    height: 8px;
+    width: 8px;
+}
+.custom-scroll::-webkit-scrollbar-track {
+    background: #f1f1f1; 
+    border-radius: 4px;
+}
+.custom-scroll::-webkit-scrollbar-thumb {
+    background: #c1c1c1; 
+    border-radius: 4px;
+}
+.custom-scroll::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8; 
+}
+
 </style>
 {% endblock %}
 

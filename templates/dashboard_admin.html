@@ -39,8 +39,12 @@
                         <td style="padding: 1rem; font-weight: bold; font-size: 1.1rem; color: #1a7f37;">₹{{ wd.amount }}</td>
                         <td style="padding: 1rem; font-size: 0.9rem;">{{ wd.created_at.strftime('%d %b %Y, %I:%M %p') }}</td>
                         <td style="padding: 1rem; text-align: right;">
-                            <form action="/api/admin/withdrawal/{{ wd.id }}/pay" method="POST" style="margin: 0;" onsubmit="return confirm('Confirm payment of ₹{{ wd.amount }} to {{ wd.owner.name }}?');">
-                                <button type="submit" class="btn btn-primary" style="padding: 0.4rem 1rem; font-size: 0.85rem;">✅ Mark as Paid</button>
+                            <form action="/api/admin/withdrawal/{{ wd.id }}/pay" method="POST" style="margin: 0; display: flex; align-items: center; gap: 0.5rem; justify-content: flex-end;">
+                                <div style="position: relative;">
+                                    <span style="position: absolute; left: 8px; top: 50%; transform: translateY(-50%); font-weight: bold; color: var(--text-secondary);">₹</span>
+                                    <input type="number" name="amount_paid" value="{{ wd.amount }}" step="0.01" min="0.01" style="width: 100px; padding: 0.4rem 0.4rem 0.4rem 1.5rem; border: 1px solid var(--border-color); border-radius: 6px; font-weight: bold;">
+                                </div>
+                                <button type="submit" class="btn btn-primary" style="padding: 0.4rem 1rem; font-size: 0.85rem;" onsubmit="return confirm('Confirm payment to {{ wd.owner.name }}?');">✅ Mark as Paid</button>
                             </form>
                         </td>
                     </tr>

@@ -8,3 +8,5 @@ flask-mail
 authlib
 requests
 gunicorn
+pandas
+openpyxl

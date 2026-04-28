@@ -12,3 +12,4 @@ static/uploads/
 *.json
 !composer.json
 !package.json
+backups/

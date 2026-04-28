@@ -11,6 +11,7 @@ from flask_login import LoginManager, login_user, login_required, logout_user, c
 from werkzeug.security import generate_password_hash, check_password_hash
 from authlib.integrations.flask_client import OAuth
 from dotenv import load_dotenv
+import pandas as pd
 
 # Base Directory Setup
 basedir = os.path.abspath(os.path.dirname(__file__))
@@ -49,7 +50,7 @@ def handle_exception(e):
     print(error_msg)
     with open("app_error.log", "a") as f:
         f.write(error_msg)
-        
+    
     if request.path.startswith('/api/'):
         return jsonify({'success': False, 'message': 'An unexpected error occurred.'}), 500
         
@@ -64,6 +65,115 @@ def handle_exception(e):
                            error_code='!', 
                            error_title='Something went wrong', 
                            error_message="We encountered an unexpected error. Please try again."), 500
+
+# --- Backup Utility ---
+def export_user_data_to_excel(user):
+    """Backs up user data before deletion. Owners get individual files; Customers are consolidated into one."""
+    try:
+        backup_dir = os.path.join(basedir, "backups")
+        if not os.path.exists(backup_dir):
+            os.makedirs(backup_dir)
+        
+        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        
+        # Determine File Path
+        if user.role == 'Owner':
+            filename = f"deleted_owner_{user.id}_{timestamp}.xlsx"
+            filepath = os.path.join(backup_dir, filename)
+        else:
+            filename = "master_deleted_customers.xlsx"
+            filepath = os.path.join(backup_dir, filename)
+
+        # Helper to load existing sheet or return empty DF (for Master file)
+        def load_df(sheet_name):
+            if user.role == 'Customer' and os.path.exists(filepath):
+                try:
+                    with pd.ExcelFile(filepath) as xls:
+                        if sheet_name in xls.sheet_names:
+                            return pd.read_excel(xls, sheet_name=sheet_name)
+                except Exception:
+                    pass
+            return pd.DataFrame()
+
+        # 1. User Info
+        user_info_record = [{
+            'ID': user.id,
+            'Name': user.name,
+            'Email': user.email,
+            'Phone': user.phone,
+            'Role': user.role,
+            'Wallet Balance': user.wallet_balance,
+            'Subscription Plan': user.subscription_plan,
+            'Subscription End': user.subscription_end.strftime('%Y-%m-%d %H:%M:%S') if user.subscription_end else 'N/A',
+            'Registered At': user.created_at.strftime('%Y-%m-%d %H:%M:%S') if user.created_at else 'N/A',
+            'Deletion Date': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        }]
+        
+        # 2. Gather Data based on role
+        if user.role == 'Owner':
+            # Create individual file for owner
+            with pd.ExcelWriter(filepath, engine='openpyxl') as writer:
+                pd.DataFrame(user_info_record).to_excel(writer, sheet_name='Profile', index=False)
+                
+                # Turfs
+                turfs = []
+                for t in user.turfs:
+                    turfs.append({
+                        'ID': t.id, 'Name': t.name, 'Location': t.location, 
+                        'Price/Hr': t.price_per_hour, 'Night Price': t.night_price_per_hour, 'Suspended': t.is_suspended
+                    })
+                if turfs: pd.DataFrame(turfs).to_excel(writer, sheet_name='Turfs', index=False)
+                
+                # Turf Bookings
+                t_bookings = []
+                for t in user.turfs:
+                    for b in t.bookings:
+                        t_bookings.append({
+                            'Booking ID': b.id, 'Turf': t.name, 'Date': b.date, 'Slot': b.time_slot, 'Cost': b.cost,
+                            'Customer': b.offline_customer_name or (b.customer.name if b.customer else 'N/A'),
+                            'Status': b.payment_status, 'Created': b.created_at.strftime('%Y-%m-%d %H:%M:%S')
+                        })
+                if t_bookings: pd.DataFrame(t_bookings).to_excel(writer, sheet_name='Turf Bookings', index=False)
+                
+                # Withdrawals
+                wd_data = []
+                for w in user.withdrawals:
+                    wd_data.append({
+                        'ID': w.id, 'Amount': w.amount, 'Status': w.status,
+                        'Requested': w.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+                        'Paid': w.paid_at.strftime('%Y-%m-%d %H:%M:%S') if w.paid_at else 'N/A'
+                    })
+                if wd_data: pd.DataFrame(wd_data).to_excel(writer, sheet_name='Withdrawals', index=False)
+            
+            return filename
+
+        else:
+            # Consolidate into Master Customer file
+            cust_bookings_data = []
+            for b in user.bookings:
+                cust_bookings_data.append({
+                    'Customer ID': user.id, 'Customer Name': user.name, 'Booking ID': b.id,
+                    'Turf': b.turf.name if b.turf else 'Deleted', 'Date': b.date,
+                    'Slot': b.time_slot, 'Cost': b.cost, 'Status': b.payment_status,
+                    'Created At': b.created_at.strftime('%Y-%m-%d %H:%M:%S')
+                })
+
+            # Load and Combine
+            final_user_df = pd.concat([load_df('Customers'), pd.DataFrame(user_info_record)], ignore_index=True)
+            final_bookings_df = pd.concat([load_df('Customer_Bookings'), pd.DataFrame(cust_bookings_data)], ignore_index=True)
+
+            with pd.ExcelWriter(filepath, engine='openpyxl') as writer:
+                final_user_df.to_excel(writer, sheet_name='Customers', index=False)
+                if not final_bookings_df.empty:
+                    final_bookings_df.to_excel(writer, sheet_name='Customer_Bookings', index=False)
+
+            return "master_deleted_customers.xlsx"
+
+    except Exception as e:
+        error_msg = f"[{datetime.datetime.now()}] Excel Export Error for user {user.id}: {str(e)}\n"
+        with open("app_error.log", "a") as f:
+            f.write(error_msg)
+        return None
 
 @app.errorhandler(429)
 def handle_429(e):
@@ -130,6 +240,32 @@ def send_email(subject, recipient, template, **kwargs):
     except Exception as e:
         error_msg = f"[{datetime.datetime.now()}] Failed to send email to {recipient}: {str(e)}\n"
         print(error_msg)
+        with open("email_error.log", "a") as f:
+            f.write(error_msg)
+        return False
+
+def send_backup_email(subject, recipient, filename):
+    """Sends the deletion backup Excel file as an attachment to the admin."""
+    try:
+        if not recipient:
+            return False
+        msg = Message(subject, recipients=[recipient])
+        msg.body = f"Attached is the record for a deleted user: {filename}\n\nThis is an automated backup from Cricza."
+        
+        filepath = os.path.join(basedir, "backups", filename)
+        if os.path.exists(filepath):
+            with app.open_resource(filepath) as fp:
+                # Set correct mime type for Excel
+                msg.attach(
+                    filename, 
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", 
+                    fp.read()
+                )
+        
+        mail.send(msg)
+        return True
+    except Exception as e:
+        error_msg = f"[{datetime.datetime.now()}] Failed to send backup email: {str(e)}\n"
         with open("email_error.log", "a") as f:
             f.write(error_msg)
         return False
@@ -635,9 +771,23 @@ def admin_delete_user(user_id):
          return redirect(url_for('index'))
     user = db.session.get(User, user_id)
     if user:
+        user_name = user.name
+        user_role = user.role
+        
+        # Backup to Excel before deletion
+        backup_file = export_user_data_to_excel(user)
+        
         db.session.delete(user)
         db.session.commit()
-        flash('User profile successfully deleted.')
+        
+        if backup_file:
+            # Email the backup to the Admin email defined in .env
+            admin_email = os.getenv('MAIL_DEFAULT_SENDER')
+            send_backup_email(f"Cricza Record: Deleted {user_role} - {user_name}", admin_email, backup_file)
+            flash(f'User "{user_name}" deleted. Record emailed to {admin_email} for permanent archive.')
+        else:
+            flash(f'User "{user_name}" deleted, but Excel backup failed (check logs).')
+            
     return redirect(url_for('admin_dashboard'))
 
 @app.route('/api/admin/user/<int:user_id>/cancel-subscription', methods=['POST'])
@@ -668,10 +818,20 @@ def admin_pay_withdrawal(wd_id):
          return redirect(url_for('index'))
     wd = db.session.get(WithdrawalRequest, wd_id)
     if wd and wd.status == 'Pending':
+        # Admin can modify the amount to be paid
+        amount_paid = float(request.form.get('amount_paid', wd.amount))
+        
+        owner = wd.owner
+        # Deduct from owner's wallet
+        owner.wallet_balance = max(0, owner.wallet_balance - amount_paid)
+        
+        # Update withdrawal record with actual amount paid
+        wd.amount = amount_paid
         wd.status = 'Paid'
         wd.paid_at = datetime.datetime.utcnow()
+        
         db.session.commit()
-        flash(f'Withdrawal marked as Paid for {wd.owner.name}.')
+        flash(f'Withdrawal of ₹{amount_paid} marked as Paid for {owner.name}. Wallet balance updated.')
     return redirect(url_for('admin_dashboard'))
 
 # =============================================
@@ -891,16 +1051,9 @@ def request_withdrawal():
     if current_user.role != 'Owner':
         return redirect(url_for('index'))
     
-    # Calculate current balance
-    total_revenue = 0
-    turfs = Turf.query.filter_by(owner_id=current_user.id).all()
-    for turf in turfs:
-        for booking in turf.bookings:
-            total_revenue += booking.cost
-    
-    paid = sum(w.amount for w in current_user.withdrawals if w.status == 'Paid')
+    # Calculate available balance (Wallet balance - Pending requests)
     pending = sum(w.amount for w in current_user.withdrawals if w.status == 'Pending')
-    available = total_revenue - paid - pending
+    available = current_user.wallet_balance - pending
     
     if available <= 0:
         flash('No available balance to withdraw.')
@@ -913,7 +1066,7 @@ def request_withdrawal():
     )
     db.session.add(wd)
     db.session.commit()
-    flash(f'Withdrawal request of ${round(available, 2)} submitted!')
+    flash(f'Withdrawal request of ₹{round(available, 2)} submitted!')
     return redirect(url_for('owner_dashboard'))
 
 @app.route('/api/owner/update-keys', methods=['POST'])
@@ -1507,11 +1660,10 @@ def renew_subscription():
     return redirect(url_for('partner'))
 
 # =============================================
-#   APP STARTUP
+#   DATABASE INITIALIZATION (Runs on Startup)
 # =============================================
-
-if __name__ == '__main__':
-    with app.app_context():
+with app.app_context():
+    try:
         db.create_all()
         
         # Seed Admin
@@ -1525,6 +1677,7 @@ if __name__ == '__main__':
             db.session.add(admin_user)
             db.session.commit()
 
+        # Seed Default Turfs if empty
         if Turf.query.count() == 0:
             turfs = [
                 Turf(name='Downtown Arena', description='Premium 6v6 turf with LED lighting and covered nets.', location='Downtown', price_per_hour=50.0, open_time=8, close_time=22),
@@ -1533,5 +1686,10 @@ if __name__ == '__main__':
             ]
             db.session.bulk_save_objects(turfs)
             db.session.commit()
-            
-    app.run(debug=True)
+    except Exception as e:
+        print(f"Startup DB Error: {e}")
+
+if __name__ == '__main__':
+    # Local development settings
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host='0.0.0.0', port=port, debug=True)
