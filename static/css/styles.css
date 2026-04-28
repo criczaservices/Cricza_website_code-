@@ -307,8 +307,9 @@ h6 {
 =====================================*/
 .turf-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
     gap: 2.5rem;
+    width: 100%;
 }
 
 .turf-card {
@@ -320,6 +321,7 @@ h6 {
     transition: transform var(--transition-smooth), box-shadow var(--transition-smooth);
     display: flex;
     flex-direction: column;
+    min-width: 0;
 }
 
 .turf-card:hover {
@@ -1059,8 +1061,10 @@ img, video, iframe, table {
 
     /* Turf grid — single column */
     .turf-grid {
-        grid-template-columns: 1fr;
+        grid-template-columns: 1fr !important;
         gap: 1.5rem;
+        width: 100%;
+        max-width: 100%;
     }
 
     /* Pricing grid — single column */
@@ -1338,6 +1342,8 @@ img, video, iframe, table {
 
     .container {
         padding: 1.25rem 0.75rem;
+        width: 100%;
+        overflow-x: hidden;
     }
 
     .auth-card {
