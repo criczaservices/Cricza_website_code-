@@ -6,7 +6,11 @@ import json
 import random
 import razorpay
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, session
-from flask_mail import Mail, Message
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from email.mime.image import MIMEImage
+from email.mime.application import MIMEApplication
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from authlib.integrations.flask_client import OAuth
@@ -210,33 +214,83 @@ google = oauth.register(
     client_kwargs={'scope': 'openid email profile'}
 )
 
-# Email Configuration
-app.config['MAIL_SERVER'] = os.getenv('MAIL_SERVER', 'smtp.gmail.com')
-app.config['MAIL_PORT'] = int(os.getenv('MAIL_PORT', 587))
-app.config['MAIL_USE_TLS'] = str(os.getenv('MAIL_USE_TLS', 'True')).lower() in ['true', '1', 't']
-app.config['MAIL_USE_SSL'] = str(os.getenv('MAIL_USE_SSL', 'False')).lower() in ['true', '1', 't']
-app.config['MAIL_USERNAME'] = os.getenv('MAIL_USERNAME')
-app.config['MAIL_PASSWORD'] = os.getenv('MAIL_PASSWORD')
-app.config['MAIL_DEFAULT_SENDER'] = os.getenv('MAIL_DEFAULT_SENDER')
 app.config['REMEMBER_COOKIE_DURATION'] = datetime.timedelta(days=30)
 app.config['PERMANENT_SESSION_LIFETIME'] = datetime.timedelta(days=30)
 
-mail = Mail(app)
+# --- Direct SMTP Email Engine (bypasses flask-mail for reliability) ---
+
+def _smtp_send(subject, recipient, html_body, attachments=None):
+    """Internal: Sends email via smtplib with a 15-second timeout. Runs in background thread."""
+    try:
+        server_host = os.getenv('MAIL_SERVER', 'smtp.gmail.com')
+        port = int(os.getenv('MAIL_PORT', 465))
+        use_ssl = str(os.getenv('MAIL_USE_SSL', 'True')).lower() in ['true', '1', 't']
+        use_tls = str(os.getenv('MAIL_USE_TLS', 'False')).lower() in ['true', '1', 't']
+        username = os.getenv('MAIL_USERNAME', '')
+        password = os.getenv('MAIL_PASSWORD', '')
+        sender = os.getenv('MAIL_DEFAULT_SENDER', username)
+
+        # Build the email message
+        msg = MIMEMultipart('related')
+        msg['Subject'] = subject
+        msg['From'] = sender
+        msg['To'] = recipient
+        msg.attach(MIMEText(html_body, 'html'))
+
+        # Attach files (logo, excel, etc.)
+        if attachments:
+            for att in attachments:
+                if att['type'] == 'image':
+                    img = MIMEImage(att['data'])
+                    img.add_header('Content-ID', att.get('content_id', '<logo>'))
+                    img.add_header('Content-Disposition', 'inline', filename=att.get('filename', 'image.png'))
+                    msg.attach(img)
+                elif att['type'] == 'file':
+                    part = MIMEApplication(att['data'])
+                    part.add_header('Content-Disposition', 'attachment', filename=att.get('filename', 'file'))
+                    msg.attach(part)
+
+        # Connect with a 15-second timeout (prevents infinite hang on blocked ports)
+        if use_ssl:
+            smtp_conn = smtplib.SMTP_SSL(server_host, port, timeout=15)
+        else:
+            smtp_conn = smtplib.SMTP(server_host, port, timeout=15)
+            if use_tls:
+                smtp_conn.starttls()
+
+        smtp_conn.login(username, password)
+        smtp_conn.sendmail(sender, [recipient], msg.as_string())
+        smtp_conn.quit()
+        print(f"[EMAIL OK] Sent to {recipient}: {subject}")
+    except Exception as e:
+        error_msg = f"[{datetime.datetime.now()}] Email to {recipient} failed: {str(e)}\n"
+        print(error_msg)
+        try:
+            with open("email_error.log", "a") as f:
+                f.write(error_msg)
+        except:
+            pass
 
 
 def send_email(subject, recipient, template, **kwargs):
-    """Sends an asynchronous HTML email with the Cricza logo embedded and logs errors to a file."""
+    """Sends an HTML email with Cricza logo in a non-blocking background thread."""
     try:
-        msg = Message(subject, recipients=[recipient])
-        msg.html = render_template(template, **kwargs)
-        
-        # Embed Logo
+        html_body = render_template(template, **kwargs)
+
+        attachments = []
         logo_path = os.path.join(app.static_folder, 'image', 'logo.png')
         if os.path.exists(logo_path):
-            with app.open_resource(logo_path) as fp:
-                msg.attach("logo.png", "image/png", fp.read(), headers={'Content-ID': '<logo>'})
-        
-        mail.send(msg)
+            with open(logo_path, 'rb') as fp:
+                attachments.append({
+                    'type': 'image',
+                    'data': fp.read(),
+                    'content_id': '<logo>',
+                    'filename': 'logo.png'
+                })
+
+        thr = Thread(target=_smtp_send, args=(subject, recipient, html_body, attachments))
+        thr.daemon = True
+        thr.start()
         return True
     except Exception as e:
         error_msg = f"[{datetime.datetime.now()}] Failed to prepare email to {recipient}: {str(e)}\n"
@@ -245,25 +299,28 @@ def send_email(subject, recipient, template, **kwargs):
             f.write(error_msg)
         return False
 
+
 def send_backup_email(subject, recipient, filename):
-    """Sends the deletion backup Excel file as an attachment to the admin."""
+    """Sends backup Excel file as email attachment in a non-blocking background thread."""
     try:
         if not recipient:
             return False
-        msg = Message(subject, recipients=[recipient])
-        msg.body = f"Attached is the record for a deleted user: {filename}\n\nThis is an automated backup from Cricza."
-        
+
+        html_body = f"<p>Attached is the record for a deleted user: <b>{filename}</b></p><p>This is an automated backup from Cricza.</p>"
+
+        attachments = []
         filepath = os.path.join(basedir, "backups", filename)
         if os.path.exists(filepath):
-            with app.open_resource(filepath) as fp:
-                # Set correct mime type for Excel
-                msg.attach(
-                    filename, 
-                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", 
-                    fp.read()
-                )
-        
-        mail.send(msg)
+            with open(filepath, 'rb') as fp:
+                attachments.append({
+                    'type': 'file',
+                    'data': fp.read(),
+                    'filename': filename
+                })
+
+        thr = Thread(target=_smtp_send, args=(subject, recipient, html_body, attachments))
+        thr.daemon = True
+        thr.start()
         return True
     except Exception as e:
         error_msg = f"[{datetime.datetime.now()}] Failed to prepare backup email: {str(e)}\n"
