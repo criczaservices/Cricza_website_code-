@@ -223,15 +223,6 @@ app.config['PERMANENT_SESSION_LIFETIME'] = datetime.timedelta(days=30)
 
 mail = Mail(app)
 
-def send_async_email(app, msg):
-    with app.app_context():
-        try:
-            mail.send(msg)
-        except Exception as e:
-            error_msg = f"[{datetime.datetime.now()}] Failed to send async email: {str(e)}\n"
-            print(error_msg)
-            with open("email_error.log", "a") as f:
-                f.write(error_msg)
 
 def send_email(subject, recipient, template, **kwargs):
     """Sends an asynchronous HTML email with the Cricza logo embedded and logs errors to a file."""
@@ -245,8 +236,7 @@ def send_email(subject, recipient, template, **kwargs):
             with app.open_resource(logo_path) as fp:
                 msg.attach("logo.png", "image/png", fp.read(), headers={'Content-ID': '<logo>'})
         
-        thr = Thread(target=send_async_email, args=(app, msg))
-        thr.start()
+        mail.send(msg)
         return True
     except Exception as e:
         error_msg = f"[{datetime.datetime.now()}] Failed to prepare email to {recipient}: {str(e)}\n"
@@ -273,8 +263,7 @@ def send_backup_email(subject, recipient, filename):
                     fp.read()
                 )
         
-        thr = Thread(target=send_async_email, args=(app, msg))
-        thr.start()
+        mail.send(msg)
         return True
     except Exception as e:
         error_msg = f"[{datetime.datetime.now()}] Failed to prepare backup email: {str(e)}\n"
