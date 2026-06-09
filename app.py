@@ -221,6 +221,7 @@ app.config['PERMANENT_SESSION_LIFETIME'] = datetime.timedelta(days=30)
 
 def _smtp_send(subject, recipient, html_body, attachments=None):
     """Internal: Sends email via smtplib with a 15-second timeout. Runs in background thread."""
+    print(f"[EMAIL] Attempting to send to {recipient}: {subject}", flush=True)
     try:
         server_host = os.getenv('MAIL_SERVER', 'smtp.gmail.com')
         port = int(os.getenv('MAIL_PORT', 465))
@@ -261,10 +262,10 @@ def _smtp_send(subject, recipient, html_body, attachments=None):
         smtp_conn.login(username, password)
         smtp_conn.sendmail(sender, [recipient], msg.as_string())
         smtp_conn.quit()
-        print(f"[EMAIL OK] Sent to {recipient}: {subject}")
+        print(f"[EMAIL OK] Sent to {recipient}: {subject}", flush=True)
     except Exception as e:
         error_msg = f"[{datetime.datetime.now()}] Email to {recipient} failed: {str(e)}\n"
-        print(error_msg)
+        print(error_msg, flush=True)
         try:
             with open("email_error.log", "a") as f:
                 f.write(error_msg)
